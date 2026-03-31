@@ -105,72 +105,24 @@ modutil.once_loaded.game(function()
     end)
 end)
 
-local showWindow = false
-
-local function warnIfStandaloneBypassedState(before)
-    lib.warnIfSpecialConfigBypassedState(
-        public.definition.name,
-        lib.isSpecialStateValidationEnabled(config),
-        public.specialState,
-        config,
-        public.definition.stateSchema,
-        before
-    )
-end
-
----@diagnostic disable-next-line: redundant-parameter
-rom.gui.add_imgui(function()
-    if lib.isCoordinated(public.definition.modpack) then return end
-    if not showWindow then return end
-
-    if rom.ImGui.Begin(public.definition.name .. "###" .. public.definition.id) then
-        local val, chg = rom.ImGui.Checkbox("Enabled", config.Enabled)
-        if chg then
-            config.Enabled = val
-            if val then apply() else revert() end
-        end
-        local debugVal, debugChg = rom.ImGui.Checkbox("Debug Mode", config.DebugMode == true)
-        if debugChg then
-            config.DebugMode = debugVal
-        end
-        rom.ImGui.Separator()
-        rom.ImGui.Spacing()
-        local validateSchemaEnabled = lib.isSpecialStateValidationEnabled(config)
-        local beforeQuick = validateSchemaEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
-        if public.DrawQuickContent then
-            public.DrawQuickContent(rom.ImGui, public.specialState, nil)
-        end
-        if validateSchemaEnabled then
-            warnIfStandaloneBypassedState(beforeQuick)
-        end
-        if public.specialState.isDirty() then
-            public.specialState.flushToConfig()
-        end
-        rom.ImGui.Spacing()
-        rom.ImGui.Separator()
-        local beforeTab = validateSchemaEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
-        if public.DrawTab then
-            public.DrawTab(rom.ImGui, public.specialState, nil)
-        end
-        if validateSchemaEnabled then
-            warnIfStandaloneBypassedState(beforeTab)
-        end
-        if public.specialState.isDirty() then
-            public.specialState.flushToConfig()
-        end
-        rom.ImGui.End()
-    else
-        showWindow = false
-    end
-end)
+local standaloneUi = lib.standaloneSpecialUI(
+    public.definition,
+    config,
+    public.specialState,
+    apply,
+    revert,
+    {
+        getDrawQuickContent = function()
+            return public.DrawQuickContent
+        end,
+        getDrawTab = function()
+            return public.DrawTab
+        end,
+    }
+)
 
 ---@diagnostic disable-next-line: redundant-parameter
-rom.gui.add_to_menu_bar(function()
-    if lib.isCoordinated(public.definition.modpack) then return end
-    if rom.ImGui.BeginMenu(public.definition.name) then
-        if rom.ImGui.MenuItem(public.definition.name) then
-            showWindow = not showWindow
-        end
-        rom.ImGui.EndMenu()
-    end
-end)
+rom.gui.add_imgui(standaloneUi.renderWindow)
+
+---@diagnostic disable-next-line: redundant-parameter
+rom.gui.add_to_menu_bar(standaloneUi.addMenuBar)

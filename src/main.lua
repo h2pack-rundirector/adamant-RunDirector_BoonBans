@@ -110,7 +110,7 @@ local showWindow = false
 local function warnIfStandaloneBypassedState(before)
     lib.warnIfSpecialConfigBypassedState(
         public.definition.name,
-        config.DebugMode,
+        lib.isSpecialStateValidationEnabled(config),
         public.specialState,
         config,
         public.definition.stateSchema,
@@ -129,14 +129,18 @@ rom.gui.add_imgui(function()
             config.Enabled = val
             if val then apply() else revert() end
         end
+        local debugVal, debugChg = rom.ImGui.Checkbox("Debug Mode", config.DebugMode == true)
+        if debugChg then
+            config.DebugMode = debugVal
+        end
         rom.ImGui.Separator()
         rom.ImGui.Spacing()
-        local debugEnabled = config.DebugMode == true
-        local beforeQuick = debugEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
+        local validateSchemaEnabled = lib.isSpecialStateValidationEnabled(config)
+        local beforeQuick = validateSchemaEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
         if public.DrawQuickContent then
             public.DrawQuickContent(rom.ImGui, public.specialState, nil)
         end
-        if debugEnabled then
+        if validateSchemaEnabled then
             warnIfStandaloneBypassedState(beforeQuick)
         end
         if public.specialState.isDirty() then
@@ -144,11 +148,11 @@ rom.gui.add_imgui(function()
         end
         rom.ImGui.Spacing()
         rom.ImGui.Separator()
-        local beforeTab = debugEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
+        local beforeTab = validateSchemaEnabled and lib.captureSpecialConfigSnapshot(config, public.definition.stateSchema) or nil
         if public.DrawTab then
             public.DrawTab(rom.ImGui, public.specialState, nil)
         end
-        if debugEnabled then
+        if validateSchemaEnabled then
             warnIfStandaloneBypassedState(beforeTab)
         end
         if public.specialState.isDirty() then

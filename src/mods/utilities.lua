@@ -11,39 +11,39 @@ local function Log(fmt, ...)
     lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
-local function ReadValue(key, specialState)
-    if specialState then
-        return specialState.get(key)
+local function ReadValue(key, uiState)
+    if uiState then
+        return uiState.get(key)
     end
     return store.read(key)
 end
 
-local function WriteValue(key, value, specialState)
-    if not specialState then
-        error("Boon Bans state writes require specialState", 0)
+local function WriteValue(key, value, uiState)
+    if not uiState then
+        error("Boon Bans state writes require uiState", 0)
     end
-    specialState.set(key, value)
+    uiState.set(key, value)
 end
 
-function internal.SetBanConfig(godKey, value, specialState)
+function internal.SetBanConfig(godKey, value, uiState)
     local meta = godMeta[godKey]
     if not meta or not meta.packedConfig then return false end
 
     local mask = lshift(1, meta.packedConfig.bits) - 1
     local nextValue = band(value or 0, mask)
-    local currentValue = ReadValue(meta.packedConfig.var, specialState) or 0
+    local currentValue = ReadValue(meta.packedConfig.var, uiState) or 0
     if currentValue == nextValue then
         return false
     end
-    WriteValue(meta.packedConfig.var, nextValue, specialState)
+    WriteValue(meta.packedConfig.var, nextValue, uiState)
     return true
 end
 
-function internal.GetBanConfig(godKey, specialState)
+function internal.GetBanConfig(godKey, uiState)
     local meta = godMeta[godKey]
     if not meta or not meta.packedConfig then return 0 end
 
-    local val = ReadValue(meta.packedConfig.var, specialState) or 0
+    local val = ReadValue(meta.packedConfig.var, uiState) or 0
     local mask = lshift(1, meta.packedConfig.bits) - 1
     return band(val, mask)
 end
@@ -59,20 +59,20 @@ function internal.GetRunState()
     return CurrentRun.RunDirector_BoonBans_State
 end
 
-function internal.GetRarityValue(godKey, bitIndex, specialState)
+function internal.GetRarityValue(godKey, bitIndex, uiState)
     local meta = godMeta[godKey]
     if not meta or not meta.rarityVar then return 0 end
 
-    local packedVal = ReadValue(meta.rarityVar, specialState) or 0
+    local packedVal = ReadValue(meta.rarityVar, uiState) or 0
     local shift = bitIndex * 2
     return band(rshift(packedVal, shift), 3)
 end
 
-function internal.SetRarityValue(godKey, bitIndex, newVal, specialState)
+function internal.SetRarityValue(godKey, bitIndex, newVal, uiState)
     local meta = godMeta[godKey]
     if not meta or not meta.rarityVar then return false end
 
-    local current = ReadValue(meta.rarityVar, specialState) or 0
+    local current = ReadValue(meta.rarityVar, uiState) or 0
     local shift = bitIndex * 2
     local clearMask = bnot(lshift(3, shift))
     local cleared = band(current, clearMask)
@@ -80,18 +80,18 @@ function internal.SetRarityValue(godKey, bitIndex, newVal, specialState)
     if nextValue == current then
         return false
     end
-    WriteValue(meta.rarityVar, nextValue, specialState)
+    WriteValue(meta.rarityVar, nextValue, uiState)
     return true
 end
 
-function internal.ResetAllRarity(specialState)
+function internal.ResetAllRarity(uiState)
     local cleared = {}
     local changed = false
     for _, meta in pairs(godMeta) do
         if meta.rarityVar and not cleared[meta.rarityVar] then
-            local current = ReadValue(meta.rarityVar, specialState) or 0
+            local current = ReadValue(meta.rarityVar, uiState) or 0
             if current ~= 0 then
-                WriteValue(meta.rarityVar, 0, specialState)
+                WriteValue(meta.rarityVar, 0, uiState)
                 changed = true
             end
             cleared[meta.rarityVar] = true
@@ -100,11 +100,11 @@ function internal.ResetAllRarity(specialState)
     return changed
 end
 
-function internal.UpdateGodStats(godKey, specialState)
+function internal.UpdateGodStats(godKey, uiState)
     local entry = godInfo[godKey]
     if not entry or not entry.boons then return false end
 
-    local godConfig = internal.GetBanConfig(godKey, specialState)
+    local godConfig = internal.GetBanConfig(godKey, uiState)
     local count = 0
     for _, boon in ipairs(entry.boons) do
         if band(godConfig, boon.Mask) ~= 0 then
@@ -118,9 +118,9 @@ function internal.UpdateGodStats(godKey, specialState)
     return true
 end
 
-function internal.ResetGodBans(god, specialState)
+function internal.ResetGodBans(god, uiState)
     if godMeta[god] and godInfo[god] then
-        local changed = internal.SetBanConfig(god, 0, specialState)
+        local changed = internal.SetBanConfig(god, 0, uiState)
         if not changed then
             return false
         end
@@ -131,11 +131,11 @@ function internal.ResetGodBans(god, specialState)
     return false
 end
 
-function internal.BanAllGodBans(god, specialState)
+function internal.BanAllGodBans(god, uiState)
     local meta = godMeta[god]
     if meta and meta.packedConfig and godInfo[god] then
         local mask = lshift(1, meta.packedConfig.bits) - 1
-        local changed = internal.SetBanConfig(god, mask, specialState)
+        local changed = internal.SetBanConfig(god, mask, uiState)
         if not changed then
             return false
         end
@@ -146,10 +146,10 @@ function internal.BanAllGodBans(god, specialState)
     return false
 end
 
-function internal.ResetAllBans(specialState)
+function internal.ResetAllBans(uiState)
     local changed = false
     for god, _ in pairs(godInfo) do
-        if internal.ResetGodBans(god, specialState) then
+        if internal.ResetGodBans(god, uiState) then
             changed = true
         end
     end
@@ -159,10 +159,10 @@ function internal.ResetAllBans(specialState)
     return changed
 end
 
-function internal.RecalculateBannedCounts(specialState)
+function internal.RecalculateBannedCounts(uiState)
     local changed = false
     for godKey, _ in pairs(godInfo) do
-        if internal.UpdateGodStats(godKey, specialState) then
+        if internal.UpdateGodStats(godKey, uiState) then
             changed = true
         end
     end

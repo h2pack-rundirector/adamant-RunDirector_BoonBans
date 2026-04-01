@@ -20,7 +20,7 @@ This mod can be configured in-game.
 
 This module is part of the [H2 Modular Modpack](https://github.com/h2-modpack/h2-modular-modpack). Please read the main project documentation for information on architecture and conventions.
 
-- **[Architecture](https://github.com/h2-modpack/h2-modular-modpack/blob/main/ARCHITECTURE.md)**: Framework, Lib, managed special-state model, hash pipeline, module contract.
+- **[Architecture](https://github.com/h2-modpack/h2-modular-modpack/blob/main/ARCHITECTURE.md)**: Framework, Lib, managed `uiState` model, hash pipeline, module contract.
 - **[Framework CONTRIBUTING.md](https://github.com/h2-modpack/adamant-ModpackFramework/blob/main/CONTRIBUTING.md)**: Discovery system, UI rendering, theme contract.
 - **[Lib CONTRIBUTING.md](https://github.com/h2-modpack/adamant-ModpackLib/blob/main/CONTRIBUTING.md)**: Public API reference and shared utilities.
 
@@ -42,29 +42,29 @@ This mod is designed to work standalone **or** as part of the [H2 Modpack](https
 
 Special modules have custom state beyond a simple on/off toggle, things like weapon selections, aspect choices, or multi-field configurations. ImGui renders every frame and reads values constantly, but writing to Chalk (the config persistence layer) on every frame is expensive.
 
-The solution is `public.store.specialState`, a managed state object created by Lib:
+The solution is `public.store.uiState`, a managed state object created by Lib:
 
 ```lua
 public.store = lib.createStore(config, public.definition.stateSchema)
 ```
 
-`specialState` owns a private staging table and exposes:
-- `specialState.view`
-- `specialState.get(path)`
-- `specialState.set(path, value)`
-- `specialState.update(path, fn)`
-- `specialState.toggle(path)`
-- `specialState.reloadFromConfig()`
-- `specialState.flushToConfig()`
-- `specialState.isDirty()`
+`uiState` owns a private staging table and exposes:
+- `uiState.view`
+- `uiState.get(path)`
+- `uiState.set(path, value)`
+- `uiState.update(path, fn)`
+- `uiState.toggle(path)`
+- `uiState.reloadFromConfig()`
+- `uiState.flushToConfig()`
+- `uiState.isDirty()`
 
 The lifecycle works like this:
-- During draw, read schema-backed values from `specialState.view`.
-- During draw, mutate schema-backed values only through `specialState.set/update/toggle`.
-- In hosted mode, Framework flushes once after `DrawTab` / `DrawQuickContent` if `specialState.isDirty()` is true.
-- In standalone mode, your module flushes after draw if `specialState.isDirty()` is true.
-- After profile or hash import, Framework calls `specialState.reloadFromConfig()`.
+- During draw, read schema-backed values from `uiState.view`.
+- During draw, mutate schema-backed values only through `uiState.set/update/toggle`.
+- In hosted mode, Framework flushes once after `DrawTab` / `DrawQuickContent` if `uiState.isDirty()` is true.
+- In standalone mode, your module flushes after draw if `uiState.isDirty()` is true.
+- After profile or hash import, Framework calls `uiState.reloadFromConfig()`.
 
 Do not write `config` directly for schema-backed fields inside `DrawTab` or `DrawQuickContent`.
 
-In practice: read from `specialState.view`, mutate through `public.store.specialState`, declare your fields in `stateSchema`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.
+In practice: read from `uiState.view`, mutate through `public.store.uiState`, declare your fields in `stateSchema`, and let Framework or your standalone window own the flush boundary. The template's `FILL` markers show exactly where each piece goes.

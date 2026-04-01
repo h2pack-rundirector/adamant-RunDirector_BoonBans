@@ -60,7 +60,7 @@ do
     end
 end
 
-public.store = lib.createStore(config, public.definition.stateSchema)
+public.store = lib.createStore(config, public.definition)
 internal.store = public.store
 
 local function SyncPublicExports()
@@ -107,9 +107,7 @@ end)
 local standaloneUi = lib.standaloneSpecialUI(
     public.definition,
     public.store,
-    public.store.specialState,
-    apply,
-    revert,
+    public.store.uiState,
     {
         getDrawQuickContent = function()
             return public.DrawQuickContent

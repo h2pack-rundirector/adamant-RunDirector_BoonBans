@@ -44,20 +44,20 @@ local function DrawColoredText(ui, color, text)
     ui.TextColored(color[1], color[2], color[3], color[4], text)
 end
 
-local function DrawStepInput(ui, specialState, label, configKey, minValue, maxValue, step)
+local function DrawStepInput(ui, uiState, label, configKey, minValue, maxValue, step)
     step = step or 1
-    local value = specialState.view[configKey] or minValue
+    local value = uiState.view[configKey] or minValue
     value = math.max(minValue, math.min(maxValue, value))
 
     ui.PushID(configKey)
     if ui.Button("-") and value > minValue then
-        specialState.set(configKey, value - step)
+        uiState.set(configKey, value - step)
     end
     ui.SameLine()
     ui.Text(label .. ": " .. tostring(value))
     ui.SameLine()
     if ui.Button("+") and value < maxValue then
-        specialState.set(configKey, value + step)
+        uiState.set(configKey, value + step)
     end
     ui.PopID()
 end
@@ -148,7 +148,7 @@ local function GetSortedGodKeysByGroup()
     return sortedGodKeysByGroup
 end
 
-local function DrawGodAccordion(ui, specialState, godName)
+local function DrawGodAccordion(ui, uiState, godName)
     local data = godInfo[godName]
     local meta = godMeta[godName]
     if not data or not meta then return false end
@@ -167,20 +167,20 @@ local function DrawGodAccordion(ui, specialState, godName)
 
     if open then
         ui.Indent()
-        local currentBans = internal.GetBanConfig(godName, specialState)
+        local currentBans = internal.GetBanConfig(godName, uiState)
         local dirty = false
 
         ui.PushID(godName)
         if ui.Button("Ban All") then
-            if internal.BanAllGodBans(godName, specialState) then
-                currentBans = internal.GetBanConfig(godName, specialState)
+            if internal.BanAllGodBans(godName, uiState) then
+                currentBans = internal.GetBanConfig(godName, uiState)
                 dirty = true
             end
         end
         ui.SameLine()
         if ui.Button("Reset") then
-            if internal.ResetGodBans(godName, specialState) then
-                currentBans = internal.GetBanConfig(godName, specialState)
+            if internal.ResetGodBans(godName, uiState) then
+                currentBans = internal.GetBanConfig(godName, uiState)
                 dirty = true
             end
         end
@@ -214,10 +214,10 @@ local function DrawGodAccordion(ui, specialState, godName)
                 DrawBadge(ui, " I ", BADGE_COLORS.infusion, "Elemental Infusion")
                 drawnVisual = true
             elseif meta.rarityVar and not isBanned then
-                local rarityValue = internal.GetRarityValue(godName, boon.Bit, specialState)
+                local rarityValue = internal.GetRarityValue(godName, boon.Bit, uiState)
                 local newRarity = DrawRarityButton(ui, rarityValue)
                 if newRarity ~= nil then
-                    if internal.SetRarityValue(godName, boon.Bit, newRarity, specialState) then
+                    if internal.SetRarityValue(godName, boon.Bit, newRarity, uiState) then
                         dirty = true
                     end
                 end
@@ -232,8 +232,8 @@ local function DrawGodAccordion(ui, specialState, godName)
         end
 
         if dirty then
-            internal.SetBanConfig(godName, currentBans, specialState)
-            internal.RecalculateBannedCounts(specialState)
+            internal.SetBanConfig(godName, currentBans, uiState)
+            internal.RecalculateBannedCounts(uiState)
         end
 
         ui.Unindent()
@@ -242,10 +242,10 @@ local function DrawGodAccordion(ui, specialState, godName)
     return open
 end
 
-local function DrawBanList(ui, specialState, targetGroups, headingColor)
+local function DrawBanList(ui, uiState, targetGroups, headingColor)
     local groups = GetSortedGodKeysByGroup()
     local godPoolFiltering, godPool = IsGodPoolFilteringActive()
-    local regionValue = specialState.view.ViewRegion or 4
+    local regionValue = uiState.view.ViewRegion or 4
     local equippedWeapon = GetEquippedWeapon and GetEquippedWeapon() or ""
 
     for _, group in ipairs(targetGroups) do
@@ -268,11 +268,11 @@ local function DrawBanList(ui, specialState, targetGroups, headingColor)
                     end
                     drewEntry = true
                     if not openGodName then
-                        if DrawGodAccordion(ui, specialState, godName) then
+                        if DrawGodAccordion(ui, uiState, godName) then
                             openGodName = godName
                         end
                     elseif openGodName == godName then
-                        if not DrawGodAccordion(ui, specialState, godName) then
+                        if not DrawGodAccordion(ui, uiState, godName) then
                             openGodName = nil
                         end
                     end
@@ -292,12 +292,12 @@ local function HandleTabSwitch(tabName)
     end
 end
 
-local function DrawNpcRegionFilter(ui, specialState)
+local function DrawNpcRegionFilter(ui, uiState)
     ui.Text("Show NPC Boons:")
-    local currentRegion = specialState.view.ViewRegion or 4
+    local currentRegion = uiState.view.ViewRegion or 4
     for index, option in ipairs(NPC_REGION_OPTIONS) do
         if ui.RadioButton(option.label, currentRegion == option.value) then
-            specialState.set("ViewRegion", option.value)
+            uiState.set("ViewRegion", option.value)
             currentRegion = option.value
         end
         if index < #NPC_REGION_OPTIONS then
@@ -306,77 +306,77 @@ local function DrawNpcRegionFilter(ui, specialState)
     end
 end
 
-local function DrawSettingsTab(ui, specialState)
-    local view = specialState.view
+local function DrawSettingsTab(ui, uiState)
+    local view = uiState.view
     local padVal, padChanged = ui.Checkbox("Enable Padding", view.EnablePadding == true)
-    if padChanged then specialState.set("EnablePadding", padVal) end
+    if padChanged then uiState.set("EnablePadding", padVal) end
     ui.TextDisabled("Fills up menus to ensure enough options are available.")
 
     if view.EnablePadding == true then
         ui.Indent()
         local priorityVal, priorityChanged = ui.Checkbox("Prioritize Core Boons", view.Padding_UsePriority ~= false)
-        if priorityChanged then specialState.set("Padding_UsePriority", priorityVal) end
+        if priorityChanged then uiState.set("Padding_UsePriority", priorityVal) end
 
         local futureVal, futureChanged = ui.Checkbox("Avoid 'Future Allowed' Items",
             view.Padding_AvoidFutureAllowed ~= false)
-        if futureChanged then specialState.set("Padding_AvoidFutureAllowed", futureVal) end
+        if futureChanged then uiState.set("Padding_AvoidFutureAllowed", futureVal) end
 
         local duoVal, duoChanged = ui.Checkbox("Allow Banned Duos/Legendaries", view.Padding_AllowDuos == true)
-        if duoChanged then specialState.set("Padding_AllowDuos", duoVal) end
+        if duoChanged then uiState.set("Padding_AllowDuos", duoVal) end
         ui.Unindent()
     end
 
     ui.Separator()
-    DrawStepInput(ui, specialState, "Improve N Boon Rarity to Epic", "ImproveFirstNBoonRarity", 0, 15, 1)
+    DrawStepInput(ui, uiState, "Improve N Boon Rarity to Epic", "ImproveFirstNBoonRarity", 0, 15, 1)
     ui.TextDisabled("(Improve the rarity of offered boons unless specifically forced by config.)")
 
     ui.Separator()
     if ui.Button("RESET ALL BANS (Global)") then
-        if internal.ResetAllBans(specialState) then
-            internal.RecalculateBannedCounts(specialState)
+        if internal.ResetAllBans(uiState) then
+            internal.RecalculateBannedCounts(uiState)
         end
     end
     if ui.Button("RESET ALL RARITY (Global)") then
-        internal.ResetAllRarity(specialState)
+        internal.ResetAllRarity(uiState)
     end
 end
 
-local function DrawMainContent(ui, specialState, headingColor)
+local function DrawMainContent(ui, uiState, headingColor)
     if ui.BeginTabBar("BoonSubTabs") then
         if ui.BeginTabItem("Olympians") then
             HandleTabSwitch("Olympians")
-            DrawBanList(ui, specialState, OLYMPIAN_GROUPS, headingColor)
+            DrawBanList(ui, uiState, OLYMPIAN_GROUPS, headingColor)
             ui.EndTabItem()
         end
         if ui.BeginTabItem("Other Gods & Hammers") then
             HandleTabSwitch("Hammers")
-            DrawBanList(ui, specialState, OTHER_GROUPS, headingColor)
+            DrawBanList(ui, uiState, OTHER_GROUPS, headingColor)
             ui.EndTabItem()
         end
         if ui.BeginTabItem("NPCs") then
             HandleTabSwitch("NPCs")
             if not openGodName then
-                DrawNpcRegionFilter(ui, specialState)
+                DrawNpcRegionFilter(ui, uiState)
                 ui.Separator()
             end
-            DrawBanList(ui, specialState, NPC_GROUPS, headingColor)
+            DrawBanList(ui, uiState, NPC_GROUPS, headingColor)
             ui.EndTabItem()
         end
         if ui.BeginTabItem("Settings") then
             HandleTabSwitch("Settings")
-            DrawSettingsTab(ui, specialState)
+            DrawSettingsTab(ui, uiState)
             ui.EndTabItem()
         end
         ui.EndTabBar()
     end
 end
 
-function internal.DrawTab(ui, specialState, theme)
+function internal.DrawTab(ui, uiState, theme)
     local colors = GetThemeColors(theme)
-    DrawMainContent(ui, specialState, colors.info)
+    DrawMainContent(ui, uiState, colors.info)
 end
 
-function internal.DrawQuickContent(ui, specialState, theme)
+function internal.DrawQuickContent(ui, uiState, theme)
     local colors = GetThemeColors(theme)
     local enabledCount = 0
     for _, info in pairs(godInfo) do
@@ -386,8 +386,8 @@ function internal.DrawQuickContent(ui, specialState, theme)
     end
     DrawColoredText(ui, colors.info, "Boon Bans")
     ui.Text(string.format("%d total bans configured", enabledCount))
-    local padVal, padChanged = ui.Checkbox("Padding Enabled##QuickBoonBans", specialState.view.EnablePadding == true)
+    local padVal, padChanged = ui.Checkbox("Padding Enabled##QuickBoonBans", uiState.view.EnablePadding == true)
     if padChanged then
-        specialState.set("EnablePadding", padVal)
+        uiState.set("EnablePadding", padVal)
     end
 end

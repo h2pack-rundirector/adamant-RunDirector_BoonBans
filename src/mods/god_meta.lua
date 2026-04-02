@@ -1,7 +1,5 @@
 ---@meta _
 -- Single source of truth for Run Director (BanManager + GodPoolManipulator)
-local lib = rom.mods["adamant-ModpackLib"]
-local store = RunDirectorBoonBans_Internal.store
 
 local meta = {}
 

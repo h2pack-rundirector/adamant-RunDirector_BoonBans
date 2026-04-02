@@ -6,9 +6,9 @@ rom = rom
 _PLUGIN = _PLUGIN
 game = rom.game
 modutil = mods["SGG_Modding-ModUtil"]
-chalk = mods["SGG_Modding-Chalk"]
-reload = mods["SGG_Modding-ReLoad"]
-local lib = mods["adamant-ModpackLib"]
+local chalk = mods["SGG_Modding-Chalk"]
+local reload = mods["SGG_Modding-ReLoad"]
+lib = mods["adamant-ModpackLib"]
 
 local config = chalk.auto("config.lua")
 
@@ -59,7 +59,7 @@ do
 end
 
 public.store = lib.createStore(config, public.definition)
-internal.store = public.store
+store = public.store
 
 local function SyncPublicExports()
     public.DrawTab = internal.DrawTab
@@ -80,8 +80,8 @@ end
 local function init()
     import_as_fallback(rom.game)
     registerHooks()
-    if lib.isEnabled(public.store, public.definition.modpack) then
-        lib.applyDefinition(public.definition, public.store)
+    if lib.isEnabled(store, public.definition.modpack) then
+        lib.applyDefinition(public.definition, store)
     end
 end
 
@@ -93,8 +93,8 @@ end)
 
 local standaloneUi = lib.standaloneSpecialUI(
     public.definition,
-    public.store,
-    public.store.uiState,
+    store,
+    store.uiState,
     {
         getDrawQuickContent = function()
             return public.DrawQuickContent

@@ -3,8 +3,6 @@
 
 local internal = RunDirectorBoonBans_Internal
 local godInfo = internal.godInfo
-local lib = rom.mods["adamant-ModpackLib"]
-local store = internal.store
 
 local band = bit32.band
 local t_insert = table.insert

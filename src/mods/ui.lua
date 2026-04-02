@@ -1,7 +1,6 @@
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 local godInfo = internal.godInfo
-local lib = rom.mods["adamant-ModpackLib"]
 
 local ImGuiCol = rom.ImGuiCol
 local DEFAULT_GOD_COLOR = { 1, 1, 1, 1 }

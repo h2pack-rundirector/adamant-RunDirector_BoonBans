@@ -3,8 +3,6 @@
 
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
-local lib = rom.mods["adamant-ModpackLib"]
-local store = internal.store
 
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo

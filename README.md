@@ -45,7 +45,7 @@ Special modules have custom state beyond a simple on/off toggle, things like wea
 The solution is `public.store.uiState`, a managed state object created by Lib:
 
 ```lua
-public.store = lib.createStore(config, public.definition.stateSchema)
+public.store = lib.createStore(config, public.definition)
 ```
 
 `uiState` owns a private staging table and exposes:

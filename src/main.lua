@@ -12,8 +12,6 @@ local lib = mods["adamant-ModpackLib"]
 
 local config = chalk.auto("config.lua")
 
-local _, revert = lib.createBackupSystem()
-
 local PACK_ID = "run-director"
 RunDirectorBoonBans_Internal = RunDirectorBoonBans_Internal or {}
 local internal = RunDirectorBoonBans_Internal
@@ -28,7 +26,7 @@ public.definition = {
     tooltip = "Ban boon offerings, force rarity, and configure padding behavior.",
     default = false,
     special = true,
-    dataMutation = false,
+    affectsRunData = false,
 }
 internal.definition = public.definition
 
@@ -68,9 +66,6 @@ local function SyncPublicExports()
     public.DrawQuickContent = internal.DrawQuickContent
 end
 
-local function apply()
-end
-
 local function registerHooks()
     bit32 = require("bit32")
     import("mods/god_meta.lua")
@@ -82,26 +77,18 @@ local function registerHooks()
     SyncPublicExports()
 end
 
-local function reloadUi()
-    import("mods/god_meta.lua")
-    import("mods/ui.lua")
-    SyncPublicExports()
+local function init()
+    import_as_fallback(rom.game)
+    registerHooks()
+    if lib.isEnabled(public.store, public.definition.modpack) then
+        lib.applyDefinition(public.definition, public.store)
+    end
 end
-
-public.definition.apply = apply
-public.definition.revert = revert
 
 local loader = reload.auto_single()
 
 modutil.once_loaded.game(function()
-    loader.load(function()
-        import_as_fallback(rom.game)
-        registerHooks()
-        if lib.isEnabled(public.store, public.definition.modpack) then apply() end
-    end, function()
-        import_as_fallback(rom.game)
-        reloadUi()
-    end)
+    loader.load(init, init)
 end)
 
 local standaloneUi = lib.standaloneSpecialUI(

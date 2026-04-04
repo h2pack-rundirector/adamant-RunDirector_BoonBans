@@ -134,18 +134,18 @@ function internal.GetTotalBansConfigured()
     return totalBans
 end
 
-function internal.GetBridalGlowTargetBoonKey(uiState)
-    local boonKey = ReadValue("BridalGlowTargetBoon", uiState)
-    if not boonKey or boonKey == "" then
-        return nil
+function internal.SetBridalGlowTargetBoonKey(boonKey, uiState)
+    if not uiState then
+        error("Bridal Glow target writes require uiState", 0)
     end
 
-    for _, entry in pairs(godInfo) do
-        if type(entry) == "table" and entry.boonByKey and entry.boonByKey[boonKey] then
-            return boonKey
-        end
+    local nextValue = boonKey or ""
+    local currentValue = ReadValue("BridalGlowTargetBoon", uiState) or ""
+    if currentValue == nextValue then
+        return false
     end
-    return nil
+    uiState.set("BridalGlowTargetBoon", nextValue)
+    return true
 end
 
 function internal.ResetGodBans(god, uiState)

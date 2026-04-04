@@ -14,7 +14,7 @@ local function GetRunState()
     return internal.GetRunState()
 end
 
-local function IsBanManagerActive()
+local function IsBoonBansActive()
     return lib.isEnabled(store, internal.definition.modpack)
 end
 
@@ -48,11 +48,12 @@ local function PopulateGodInfo()
 
     local function addBoonToRuntime(godKey, boonKey, index, overrideDisplayName)
         local traitData = TraitData[boonKey]
-        local rarity = { isDuo = false, isLegendary = false, isElemental = false }
+        local rarity = { isDuo = false, isLegendary = false, isElemental = false, blockStacking = false }
         if traitData then
             rarity.isDuo = traitData.IsDuoBoon or false
             rarity.isLegendary = (traitData.RarityLevels and traitData.RarityLevels.Legendary ~= nil) or false
             rarity.isElemental = traitData.IsElementalTrait or false
+            rarity.blockStacking = traitData.BlockStacking == true
         end
 
         local bitMask = lshift(1, index)
@@ -65,7 +66,8 @@ local function PopulateGodInfo()
             Mask = bitMask,
             Name = displayName,
             NameLower = string.lower(displayName),
-            Rarity = rarity
+            Rarity = rarity,
+            IsBridalGlowEligible = false,
         }
 
         if rarity.isDuo then
@@ -89,11 +91,17 @@ local function PopulateGodInfo()
             boon.SpecialTooltip = "Elemental Infusion"
             boon.SpecialBadgeText = " I "
             boon.SpecialBadgeColor = { 1.0, 0.29, 1.0, 1.0 }
+        elseif rarity.blockStacking then
+            boon.IsSpecial = false
+            boon.IsRarityEligible = true
+            boon.SpecialDisplayLabel = displayName
         else
             boon.IsSpecial = false
             boon.IsRarityEligible = true
             boon.SpecialDisplayLabel = displayName
         end
+
+        boon.IsBridalGlowEligible = (boon.IsRarityEligible == true) and (rarity.blockStacking ~= true)
 
         godInfo[godKey].boons = godInfo[godKey].boons or {}
         t_insert(godInfo[godKey].boons, boon)
@@ -313,6 +321,6 @@ function internal.GetGodFromLootsource(lootKey)
 end
 
 internal.GetRootKey = GetRootKey
-internal.IsBanManagerActive = IsBanManagerActive
+internal.IsBoonBansActive = IsBoonBansActive
 
 PopulateGodInfo()

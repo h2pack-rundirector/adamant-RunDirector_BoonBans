@@ -44,6 +44,7 @@ uiData.MAIN_TABS = {
     "NPCs",
     "Settings",
 }
+uiData.BRIDAL_GLOW_VIEW_ID = "__bridal_glow__"
 uiData.TAB_BY_GROUP = {
     Core = "Olympians",
     Bonus = "Other Gods",
@@ -92,6 +93,7 @@ uiData.cachedEquippedWeaponName = ""
 uiData.bridalGlowSelection = {
     rootKey = nil,
 }
+uiData.activeBridalGlowRootId = nil
 
 function uiData.GetThemeColors(theme)
     return (theme and theme.colors) or uiData.DEFAULT_THEME_COLORS
@@ -189,6 +191,10 @@ function uiData.IsRarityEligibleBoon(boon)
     return boon.IsRarityEligible ~= false
 end
 
+function uiData.IsBridalGlowEligibleBoon(boon)
+    return boon.IsBridalGlowEligible == true
+end
+
 function uiData.FormatCountLabel(banned, total)
     return string.format("(%d/%d Banned)", banned, total)
 end
@@ -253,9 +259,8 @@ function uiData.RefreshFrameState()
     uiData.cachedEquippedWeaponName = uiData.GetEquippedWeaponName()
 end
 
-function uiData.InvalidateBridalGlowCaches()
+function uiData.InvalidateBridalGlowRootCache()
     uiData.bridalGlowEligibleRoots = nil
-    uiData.bridalGlowBoonsByRoot = {}
 end
 
 function uiData.GetRootDisplayLabel(rootKey, meta)

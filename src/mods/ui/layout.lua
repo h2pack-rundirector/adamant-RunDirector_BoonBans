@@ -1,5 +1,4 @@
 local internal = RunDirectorBoonBans_Internal
-local godInfo = internal.godInfo
 local uiData = internal.ui
 
 local ImGuiCol = rom.ImGuiCol
@@ -56,6 +55,12 @@ function uiData.DrawRootDetail(ui, root, uiState)
                         uiData.DrawForceView(ui, root, uiState)
                     elseif view.kind == "bans" then
                         uiData.DrawBansView(ui, root, view.scopeKey, uiState)
+                    elseif view.kind == "bridal_glow" then
+                        if uiData.activeBridalGlowRootId ~= root.id then
+                            uiData.InvalidateBridalGlowRootCache()
+                            uiData.activeBridalGlowRootId = root.id
+                        end
+                        uiData.DrawBridalGlowControls(ui, uiState)
                     else
                         uiData.DrawRarityView(ui, root, uiState)
                     end

@@ -33,6 +33,12 @@ read_globals = {
     "GetEquippedWeapon",
     "IsGodTrait",
     "GameState",
+    "GetHeroTrait",
+    "AddRarityToTraits",
+    "thread",
+    "IncreaseTraitLevel",
+    "HeraTraitRarityPresentation",
+    "AddStackToTraits",
 
     "GetTotalLootChoices"
 

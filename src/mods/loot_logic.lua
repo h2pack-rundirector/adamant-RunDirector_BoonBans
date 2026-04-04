@@ -9,8 +9,8 @@ local godInfo = internal.godInfo
 
 local band = bit32.band
 
-local function IsBanManagerActive()
-    return internal.IsBanManagerActive()
+local function IsBoonBansActive()
+    return internal.IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
@@ -147,7 +147,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
 end
 
 modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, lootData, upgradeChoiceData)
-    if not IsBanManagerActive() then return base(upgradeOptions, lootData, upgradeChoiceData) end
+    if not IsBoonBansActive() then return base(upgradeOptions, lootData, upgradeChoiceData) end
 
     local currentGodKey = internal.GetGodFromLootsource(lootData.Name)
     local isHammer = (lootData.Name == "WeaponUpgrade")
@@ -214,7 +214,7 @@ modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, loot
             Log("  %d. %s (Rarity: %s)", i, queued.ItemName, tostring(queued.rarity))
         end
     end
-    CurrentRun._banManager_DuoLegendaryQueue = duoLegendaryQueue
+    CurrentRun._BoonBans_DuoLegendaryQueue = duoLegendaryQueue
 
     return queue
 end)
@@ -228,7 +228,7 @@ end)
 
 modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
     local restoreChance = nil
-    if IsBanManagerActive() and CurrentRun.Hero.BoonData then
+    if IsBoonBansActive() and CurrentRun.Hero.BoonData then
         restoreChance = CurrentRun.Hero.BoonData.ReplaceChance
         CurrentRun.Hero.BoonData.ReplaceChance = 0.0
     end
@@ -239,7 +239,7 @@ modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
         CurrentRun.Hero.BoonData.ReplaceChance = restoreChance
     end
 
-    if not IsBanManagerActive() then return end
+    if not IsBoonBansActive() then return end
 
     Log("[Micro] Applying forced Epic rarity to specific traits (if present in loot).")
 
@@ -279,9 +279,9 @@ modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
         end
     end
 
-    local priorityQueue = CurrentRun._banManager_DuoLegendaryQueue
+    local priorityQueue = CurrentRun._BoonBans_DuoLegendaryQueue
     if not priorityQueue or #priorityQueue == 0 then
-        CurrentRun._banManager_DuoLegendaryQueue = nil
+        CurrentRun._BoonBans_DuoLegendaryQueue = nil
         return
     end
 
@@ -315,11 +315,11 @@ modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
     end
 
     lootData.BlockReroll = false
-    CurrentRun._banManager_DuoLegendaryQueue = nil
+    CurrentRun._BoonBans_DuoLegendaryQueue = nil
 end)
 
 modutil.mod.Path.Wrap("IsTraitEligible", function(base, traitData, args)
-    if not IsBanManagerActive() or skipIsTraitEligible then return base(traitData, args) end
+    if not IsBoonBansActive() or skipIsTraitEligible then return base(traitData, args) end
 
     local info = internal.FindTraitInfo(traitData.Name, nil)
     if info then
@@ -344,4 +344,37 @@ modutil.mod.Path.Wrap("GiveRandomHadesBoonAndBoostBoons", function(base, args)
     local result = base(args)
     isKeepsakeOffering = false
     return result
+end)
+
+modutil.mod.Path.Wrap("HeraSuperchargeBoon", function(base, args, origTraitData, contextArgs)
+    local targetBoon = store.read("BridalGlowTargetBoon")
+    if not targetBoon or targetBoon == "" then
+        base(args, origTraitData, contextArgs)
+        return
+    end
+
+    local targetTrait = GetHeroTrait(targetBoon)
+    if not targetTrait or targetTrait.BlockStacking == true then
+        base(args, origTraitData, contextArgs)
+        return
+    end
+
+    contextArgs = contextArgs or {}
+
+    local traitData = AddRarityToTraits(targetTrait, {
+        ForceUpgrade = { targetTrait },
+        TargetRarity = 4,
+        Silent = true,
+    })
+
+    if not traitData then
+        base(args, origTraitData, contextArgs)
+        return
+    end
+
+    thread(AddStackToTraits, { TraitName = traitData.Name, NumStacks = args.Stacks, Silent = true })
+    IncreaseTraitLevel(traitData, args.Stacks)
+
+    origTraitData.UpgradedTraitName = traitData.Name
+    thread(HeraTraitRarityPresentation, traitData.Name, args.Stacks, contextArgs.Delay)
 end)

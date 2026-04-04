@@ -4,13 +4,11 @@ local uiData = internal.ui
 local band = bit32.band
 local bnot = bit32.bnot
 local bor = bit32.bor
-local lshift = bit32.lshift
 local ImGuiCol = rom.ImGuiCol
 
 local FORCE_DROPDOWN_OFFSET = 84
 local FORCE_DROPDOWN_WIDTH = 220
 local RARITY_CONTROL_OFFSET = 300
-local BRIDAL_GLOW_CONFIG_KEY = "BridalGlowTargetBoon"
 
 local function GetForceScopeState(scopeKey, uiState)
     local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
@@ -155,8 +153,6 @@ function uiData.DrawForceView(ui, root, uiState)
                 if internal.ResetGodBans(scope.key, uiState) then
                     selectedKey = nil
                     forcedKey = nil
-                    isNone = true
-                    preview = "None"
                 end
             end
             for _, boon in ipairs(uiData.GetScopeBoons(scope.key)) do
@@ -168,8 +164,6 @@ function uiData.DrawForceView(ui, root, uiState)
                     uiData.ApplyForceOne(scope.key, boon.Key, uiState)
                     selectedKey = boon.Key
                     forcedKey = boon.Key
-                    isNone = false
-                    preview = label
                 end
                 if accentColor then
                     ui.PopStyleColor()
@@ -366,7 +360,8 @@ local function GetBridalGlowEligibleBoons(root)
 
     local boons = {}
     for _, boon in ipairs(uiData.GetScopeBoons(root.primaryScopeKey)) do
-        if uiData.IsRarityEligibleBoon(boon) then
+        if uiData.IsBridalGlowEligibleBoon(boon) then
+            boon.BridalGlowLabel = boon.BridalGlowLabel or uiData.GetBoonText(boon)
             table.insert(boons, boon)
         end
     end
@@ -381,7 +376,7 @@ local function FindBridalGlowRootForTarget(roots, selectedBoonKey)
 
     for _, root in ipairs(roots) do
         local boon = uiData.FindBoonByKey(root.primaryScopeKey, selectedBoonKey)
-        if boon and uiData.IsRarityEligibleBoon(boon) then
+        if boon and uiData.IsBridalGlowEligibleBoon(boon) then
             return root
         end
     end
@@ -410,11 +405,11 @@ local function EnsureBridalGlowRootSelection(roots, selectedBoonKey)
 end
 
 function uiData.DrawBridalGlowControls(ui, uiState)
-    ui.Separator()
-    ui.Text("Bridal Glow")
+    local paneHeight = 220
+    local godPaneWidth = 200
     ui.TextDisabled("Choose the Olympian god and boon pool Bridal Glow can target.")
 
-    local selectedBoonKey = uiState.view[BRIDAL_GLOW_CONFIG_KEY] or ""
+    local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
     local eligibleRoots = GetBridalGlowEligibleRoots()
     if #eligibleRoots == 0 then
         ui.TextDisabled("No eligible Olympian gods are currently available.")
@@ -422,62 +417,58 @@ function uiData.DrawBridalGlowControls(ui, uiState)
     end
 
     local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey)
-    local currentGodLabel = selectedRoot and selectedRoot.displayLabel or "None"
+    local selectedRootKey = selectedRoot and selectedRoot.rootKey or nil
 
-    ui.Text("Eligible God")
-    ui.SameLine()
-    ui.PushItemWidth(220)
-    if ui.BeginCombo("##BridalGlowGod", currentGodLabel) then
+    local currentTarget = nil
+    if selectedBoonKey ~= "" then
         for _, root in ipairs(eligibleRoots) do
-            if ui.Selectable(root.displayLabel, selectedRoot and root.rootKey == selectedRoot.rootKey) then
-                uiData.bridalGlowSelection.rootKey = root.rootKey
-                selectedRoot = root
-                local eligibleBoons = GetBridalGlowEligibleBoons(root)
-                local stillValid = false
-                for _, boon in ipairs(eligibleBoons) do
-                    if boon.Key == selectedBoonKey then
-                        stillValid = true
-                        break
-                    end
-                end
-                if not stillValid then
-                    selectedBoonKey = ""
-                    uiState.set(BRIDAL_GLOW_CONFIG_KEY, "")
-                end
+            currentTarget = uiData.FindBoonByKey(root.primaryScopeKey, selectedBoonKey)
+            if currentTarget and uiData.IsBridalGlowEligibleBoon(currentTarget) then
+                currentTarget.BridalGlowLabel = currentTarget.BridalGlowLabel or uiData.GetBoonText(currentTarget)
+                break
             end
+            currentTarget = nil
         end
-        ui.EndCombo()
     end
-    ui.PopItemWidth()
 
     local eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
-    local selectedBoon = selectedRoot and uiData.FindBoonByKey(selectedRoot.primaryScopeKey, selectedBoonKey) or nil
-    if selectedBoon and not uiData.IsRarityEligibleBoon(selectedBoon) then
-        selectedBoon = nil
-    end
-    local boonPreview = selectedBoon and uiData.GetBoonText(selectedBoon) or "None"
 
-    ui.Text("Eligible Boon")
+    if currentTarget then
+        ui.Text("Current Target:")
+        ui.SameLine()
+        ui.TextDisabled(currentTarget.BridalGlowLabel)
+    else
+        ui.TextDisabled("Current Target: Random")
+    end
+
+    ui.BeginChild("##BridalGlowGodList", godPaneWidth, paneHeight, true)
+    ui.TextDisabled("Eligible Gods")
+    ui.Separator()
+    for _, root in ipairs(eligibleRoots) do
+        if ui.Selectable(root.displayLabel, root.rootKey == selectedRootKey) then
+            uiData.bridalGlowSelection.rootKey = root.rootKey
+            selectedRoot = root
+            selectedRootKey = root.rootKey
+            eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
+        end
+    end
+    ui.EndChild()
+
     ui.SameLine()
-    ui.PushItemWidth(280)
-    if ui.BeginCombo("##BridalGlowBoon", boonPreview) then
-        if ui.Selectable("None", selectedBoonKey == "") then
-            selectedBoonKey = ""
-            uiState.set(BRIDAL_GLOW_CONFIG_KEY, "")
-        end
-        for _, boon in ipairs(eligibleBoons) do
-            if ui.Selectable(uiData.GetBoonText(boon), boon.Key == selectedBoonKey) then
-                selectedBoonKey = boon.Key
-                uiState.set(BRIDAL_GLOW_CONFIG_KEY, boon.Key)
-            end
-        end
-        ui.EndCombo()
+    ui.BeginChild("##BridalGlowBoonList", 0, paneHeight, true)
+    ui.TextDisabled("Eligible Boons")
+    ui.Separator()
+    if ui.Selectable("Random", selectedBoonKey == "") then
+        selectedBoonKey = ""
+        internal.SetBridalGlowTargetBoonKey(nil, uiState)
     end
-    ui.PopItemWidth()
-
-    if selectedBoonKey ~= "" then
-        ui.TextDisabled("Stored boon key: " .. selectedBoonKey)
+    for _, boon in ipairs(eligibleBoons) do
+        if ui.Selectable(boon.BridalGlowLabel, boon.Key == selectedBoonKey) then
+            selectedBoonKey = boon.Key
+            internal.SetBridalGlowTargetBoonKey(boon.Key, uiState)
+        end
     end
+    ui.EndChild()
 end
 
 function uiData.DrawSettingsTab(ui, uiState)
@@ -506,8 +497,6 @@ function uiData.DrawSettingsTab(ui, uiState)
     ui.Separator()
     uiData.DrawStepInput(ui, uiState, "Improve N Boon Rarity to Epic", "ImproveFirstNBoonRarity", 0, 15, 1)
     ui.TextDisabled("(Improve the rarity of offered boons unless specifically forced by config.)")
-
-    uiData.DrawBridalGlowControls(ui, uiState)
 
     ui.Separator()
     uiData.DrawDangerAction(ui, "reset_all_bans", "RESET ALL BANS (Global)", "Confirm RESET ALL BANS", function()

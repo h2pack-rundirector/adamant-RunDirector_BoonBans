@@ -84,6 +84,13 @@ function uiData.BuildRootDescriptors()
                             label = "Rarity",
                             kind = "rarity",
                         })
+                        if godKey == "Hera" then
+                            table.insert(desc.views, {
+                                id = uiData.BRIDAL_GLOW_VIEW_ID,
+                                label = "Bridal Glow Target",
+                                kind = "bridal_glow",
+                            })
+                        end
                     end
                 else
                     table.insert(desc.scopes, {

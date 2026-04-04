@@ -11,8 +11,8 @@ local function GetRunState()
     return internal.GetRunState()
 end
 
-local function IsBanManagerActive()
-    return internal.IsBanManagerActive()
+local function IsBoonBansActive()
+    return internal.IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
@@ -20,7 +20,7 @@ local function Log(fmt, ...)
 end
 
 modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
-    if not IsBanManagerActive() then return base(args) end
+    if not IsBoonBansActive() then return base(args) end
     local restores = {}
     if godInfo["CirceBNB"] then
         local configVal = internal.GetBanConfig("CirceBNB")
@@ -40,7 +40,7 @@ modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
 end)
 
 modutil.mod.Path.Wrap("CirceRandomMetaUpgrade", function(base, args)
-    if not IsBanManagerActive() then return base(args) end
+    if not IsBoonBansActive() then return base(args) end
     local restores = {}
     local metaState = GameState.MetaUpgradeState or {}
     if godInfo["CirceCRD"] then
@@ -61,7 +61,7 @@ modutil.mod.Path.Wrap("CirceRandomMetaUpgrade", function(base, args)
 end)
 
 modutil.mod.Path.Wrap("AddRandomMetaUpgrades", function(base, numCards, args)
-    if not IsBanManagerActive() then return base(numCards, args) end
+    if not IsBoonBansActive() then return base(numCards, args) end
     if numCards and numCards ~= GetTotalHeroTraitValue("PostBossCards") then return base(numCards, args) end
 
     local restores = {}
@@ -87,7 +87,7 @@ end)
 
 local function wrapNPCChoice(funcName)
     modutil.mod.Path.Wrap(funcName, function(base, source, args, screen)
-        if IsBanManagerActive() and args.UpgradeOptions then
+        if IsBoonBansActive() and args.UpgradeOptions then
             local allowed = {}
             local banned = {}
             local configCache = {}
@@ -149,7 +149,7 @@ end
 
 modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
     local eligible = base(screen, args)
-    if not IsBanManagerActive() then return eligible end
+    if not IsBoonBansActive() then return eligible end
 
     local allowed = {}
     local banned = {}
@@ -198,7 +198,7 @@ modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
 end)
 
 modutil.mod.Path.Wrap("OpenUpgradeChoiceMenu", function(base, source, args)
-    if IsBanManagerActive() and source and source.Name then
+    if IsBoonBansActive() and source and source.Name then
         internal.ActiveGodKey = internal.GetGodFromLootsource(source.Name)
     end
     base(source, args)
@@ -209,7 +209,7 @@ modutil.mod.Path.Wrap("AddTraitToHero", function(base, args)
     local traitData = args.TraitData
     local state = GetRunState()
 
-    if IsBanManagerActive() and traitData then
+    if IsBoonBansActive() and traitData then
         internal.GetOrRecalcBoonCounts()
         local godKey = internal.ActiveGodKey
         Log("[Micro] AddTraitToHero: Found godKey %s from (trait: %s)", godKey, traitData.Name)
@@ -229,7 +229,7 @@ modutil.mod.Path.Wrap("AddTraitToHero", function(base, args)
         internal.ActiveGodKey = nil
     end
 
-    if IsBanManagerActive() and traitData then
+    if IsBoonBansActive() and traitData then
         if CurrentRun and state.ImproveFirstNBoonRarity and IsGodTrait(traitData.Name) then
             state.ImproveFirstNBoonRarity = math.max(0, state.ImproveFirstNBoonRarity - 1)
         end
@@ -240,7 +240,7 @@ end)
 modutil.mod.Path.Wrap("GetRarityChances", function(base, loot)
     local chances = base(loot)
     local state = GetRunState()
-    if IsBanManagerActive() and CurrentRun and state.ImproveFirstNBoonRarity > 0 and loot.GodLoot then
+    if IsBoonBansActive() and CurrentRun and state.ImproveFirstNBoonRarity > 0 and loot.GodLoot then
         chances.Common, chances.Rare, chances.Epic = 0.0, 0.0, 1.0
     end
     return chances

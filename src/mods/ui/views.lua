@@ -9,7 +9,6 @@ local ImGuiCol = rom.ImGuiCol
 local FORCE_DROPDOWN_OFFSET = 84
 local FORCE_DROPDOWN_WIDTH = 220
 local RARITY_CONTROL_OFFSET = 300
-local RARITY_LABEL_FIXED_WIDTH = 60
 
 local function GetForceScopeState(scopeKey, uiState)
     local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
@@ -85,32 +84,23 @@ end
 
 function uiData.DrawRarityStepper(ui, root, row, uiState, options)
     options = options or {}
-    local currentValue = internal.GetRarityValue(root.primaryScopeKey, row.bit, uiState)
-    local label = uiData.RARITY_LABELS[currentValue] or "Auto"
-    local color = uiData.RARITY_COLORS[currentValue] or uiData.RARITY_COLORS[0]
-    local nextValue = currentValue
-
+    local rarityWidget = internal.definition.customTypes
+        and internal.definition.customTypes.widgets
+        and internal.definition.customTypes.widgets.rarityBadge
+    if not rarityWidget then return end
+    local syntheticBound = {
+        value = {
+            get = function(_) return internal.GetRarityValue(root.primaryScopeKey, row.bit, uiState) end,
+            set = function(_, val) internal.SetRarityValue(root.primaryScopeKey, row.bit, val, uiState) end,
+        },
+    }
     ui.PushID("rarity_" .. row.key)
     if not options.compact then
         ui.Text(row.name)
         ui.SameLine(RARITY_CONTROL_OFFSET)
     end
-    if ui.Button("-") and currentValue > 0 then
-        nextValue = currentValue - 1
-    end
-    ui.SameLine()
-    local labelStart = ui.GetCursorPosX()
-    uiData.DrawColoredText(ui, color, label)
-    ui.SameLine()
-    ui.SetCursorPosX(labelStart + RARITY_LABEL_FIXED_WIDTH)
-    if ui.Button("+") and currentValue < 3 then
-        nextValue = currentValue + 1
-    end
+    rarityWidget.draw(ui, {}, syntheticBound)
     ui.PopID()
-
-    if nextValue ~= currentValue then
-        internal.SetRarityValue(root.primaryScopeKey, row.bit, nextValue, uiState)
-    end
 end
 
 function uiData.DrawBanFilterControls(ui, root)

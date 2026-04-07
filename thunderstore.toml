@@ -3,10 +3,10 @@ schemaVersion = "0.0.1"
 
 [package]
 namespace = "adamant"
-name = "RunDirectorBoonBans"
+name = "RunDirector_BoonBans"
 description = "TODO: description for RunDirectorBoonBans"
 versionNumber = "0.0.1"
-websiteUrl = "https://github.com/h2pack-rundirector/RunDirectorBoonBans"
+websiteUrl = "https://github.com/h2pack-rundirector/adamant-RunDirector_BoonBans"
 containsNsfwContent = false
 
 [package.dependencies]

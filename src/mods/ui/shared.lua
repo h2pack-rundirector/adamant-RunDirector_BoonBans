@@ -233,7 +233,7 @@ function uiData.GetSourceColor(scopeKey)
 end
 
 function uiData.IsGodPoolFilteringActive()
-    local godPool = rom.mods["adamant-RunDirectorGodPool"]
+    local godPool = rom.mods["adamant-RunDirector_GodPool"]
     if not godPool or not godPool.store or not godPool.definition or type(godPool.isGodEnabledInPool) ~= "function" then
         return false, nil
     end

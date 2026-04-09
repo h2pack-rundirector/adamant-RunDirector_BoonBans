@@ -4,10 +4,11 @@
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 
+import("mods/boon_catalog.lua")
+
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
 
-local lshift = bit32.lshift
 local t_insert = table.insert
 
 local function GetRunState()
@@ -46,181 +47,31 @@ local function PopulateGodInfo()
         godInfo[key] = { color = GetSourceColor(key), boons = {}, boonByKey = {} }
     end
 
-    local function addBoonToRuntime(godKey, boonKey, index, overrideDisplayName)
-        local traitData = TraitData[boonKey]
-        local rarity = { isDuo = false, isLegendary = false, isElemental = false, blockStacking = false }
-        if traitData then
-            rarity.isDuo = traitData.IsDuoBoon or false
-            rarity.isLegendary = (traitData.RarityLevels and traitData.RarityLevels.Legendary ~= nil) or false
-            rarity.isElemental = traitData.IsElementalTrait or false
-            rarity.blockStacking = traitData.BlockStacking == true
+    local function addBoonToRuntime(godKey, sourceBoon)
+        local boon = {}
+        for key, value in pairs(sourceBoon) do
+            boon[key] = value
         end
-
-        local bitMask = lshift(1, index)
-        local displayName = overrideDisplayName or (traitData and game.GetDisplayName({ Text = boonKey })) or boonKey
-
-        local boon = {
-            Key = boonKey,
-            God = godKey,
-            Bit = index,
-            Mask = bitMask,
-            Name = displayName,
-            NameLower = string.lower(displayName),
-            Rarity = rarity,
-            IsBridalGlowEligible = false,
-        }
-
-        if rarity.isDuo then
-            boon.IsSpecial = true
-            boon.IsRarityEligible = false
-            boon.SpecialDisplayLabel = "[D] " .. displayName
-            boon.SpecialTooltip = "Duo Boon"
-            boon.SpecialBadgeText = " D "
-            boon.SpecialBadgeColor = { 0.82, 1.0, 0.38, 1.0 }
-        elseif rarity.isLegendary then
-            boon.IsSpecial = true
-            boon.IsRarityEligible = false
-            boon.SpecialDisplayLabel = "[L] " .. displayName
-            boon.SpecialTooltip = "Legendary Boon"
-            boon.SpecialBadgeText = " L "
-            boon.SpecialBadgeColor = { 1.0, 0.56, 0.0, 1.0 }
-        elseif rarity.isElemental then
-            boon.IsSpecial = true
-            boon.IsRarityEligible = false
-            boon.SpecialDisplayLabel = "[I] " .. displayName
-            boon.SpecialTooltip = "Elemental Infusion"
-            boon.SpecialBadgeText = " I "
-            boon.SpecialBadgeColor = { 1.0, 0.29, 1.0, 1.0 }
-        elseif rarity.blockStacking then
-            boon.IsSpecial = false
-            boon.IsRarityEligible = true
-            boon.SpecialDisplayLabel = displayName
-        else
-            boon.IsSpecial = false
-            boon.IsRarityEligible = true
-            boon.SpecialDisplayLabel = displayName
-        end
-
-        boon.IsBridalGlowEligible = (boon.IsRarityEligible == true) and (rarity.blockStacking ~= true)
-
+        boon.God = godKey
         godInfo[godKey].boons = godInfo[godKey].boons or {}
         t_insert(godInfo[godKey].boons, boon)
-        godInfo[godKey].boonByKey[boonKey] = boon
+        godInfo[godKey].boonByKey[boon.Key] = boon
 
-        local entry = { god = godKey, bit = index, mask = bitMask }
-        if not godInfo.traitLookup[boonKey] then
-            godInfo.traitLookup[boonKey] = { entry }
+        local entry = { god = godKey, bit = boon.Bit, mask = boon.Mask }
+        if not godInfo.traitLookup[boon.Key] then
+            godInfo.traitLookup[boon.Key] = { entry }
         else
-            t_insert(godInfo.traitLookup[boonKey], entry)
+            t_insert(godInfo.traitLookup[boon.Key], entry)
         end
     end
 
+    local baseCatalog = internal.GetOrBuildBaseBoonCatalog()
     for key, meta in pairs(godMeta) do
         if not meta.duplicateOf and meta.lootSource then
-            local src = meta.lootSource
-
-            if src.type == "LootSet" then
-                local lootData = LootSetData[meta.key]
-                if lootData and lootData[src.key] then
-                    local upgradeData = lootData[src.key]
-                    local index = 0
-                    if upgradeData.WeaponUpgrades then
-                        for _, boon in ipairs(upgradeData.WeaponUpgrades) do
-                            addBoonToRuntime(key, boon, index)
-                            index = index + 1
-                        end
-                    end
-                    if upgradeData.Traits then
-                        for _, boon in ipairs(upgradeData.Traits) do
-                            addBoonToRuntime(key, boon, index)
-                            index = index + 1
-                        end
-                    end
-                    if upgradeData[src.subKey] then
-                        for _, boon in ipairs(upgradeData[src.subKey]) do
-                            addBoonToRuntime(key, boon, index)
-                            index = index + 1
-                        end
-                    end
-                end
-            elseif src.type == "UnitSet" then
-                if UnitSetData[src.unitKey] and UnitSetData[src.unitKey][src.configKey] then
-                    local traitList = UnitSetData[src.unitKey][src.configKey].Traits
-                    if traitList then
-                        for i, boon in ipairs(traitList) do
-                            addBoonToRuntime(key, boon, i - 1)
-                        end
-                    end
-                end
-            elseif src.type == "SpellData" then
-                local spellNames = {}
-                for spellName, _ in pairs(SpellData) do
-                    t_insert(spellNames, spellName)
-                end
-                table.sort(spellNames)
-                for i, spellName in ipairs(spellNames) do
-                    local spellData = SpellData[spellName]
-                    local name = game.GetDisplayName({ Text = spellData.TraitName })
-                    addBoonToRuntime(key, spellName, i - 1, name)
-                end
-            elseif src.type == "WeaponUpgrade" then
-                if LootSetData.Loot and LootSetData.Loot.WeaponUpgrade and LootSetData.Loot.WeaponUpgrade.Traits then
-                    local daedalusTraits = LootSetData.Loot.WeaponUpgrade.Traits
-                    local prefixes = meta.prefixes or { key }
-                    local currentIndex = 0
-                    for _, trait in ipairs(daedalusTraits) do
-                        local match = false
-                        for _, prefix in ipairs(prefixes) do
-                            if string.find(trait, prefix, 1, true) == 1 then
-                                match = true
-                                break
-                            end
-                        end
-                        if match then
-                            addBoonToRuntime(key, trait, currentIndex)
-                            currentIndex = currentIndex + 1
-                        end
-                    end
-                end
-            elseif src.type == "MetaUpgrade" then
-                local dataSource = _G[src.dataSource]
-                if dataSource then
-                    local sortedKeys = {}
-                    local orderMap = {}
-                    if MetaUpgradeDefaultCardLayout then
-                        for _, row in ipairs(MetaUpgradeDefaultCardLayout) do
-                            for _, cardName in ipairs(row) do
-                                if dataSource[cardName] then
-                                    t_insert(sortedKeys, cardName)
-                                    orderMap[cardName] = true
-                                end
-                            end
-                        end
-                    end
-
-                    local remaining = {}
-                    for cardName, _ in pairs(dataSource) do
-                        if not orderMap[cardName] then
-                            t_insert(remaining, cardName)
-                        end
-                    end
-                    table.sort(remaining)
-                    for _, cardName in ipairs(remaining) do
-                        t_insert(sortedKeys, cardName)
-                    end
-
-                    local index = 0
-                    for _, upgradeName in ipairs(sortedKeys) do
-                        local isValid = true
-                        if isValid and src.exclude and src.exclude[upgradeName] then
-                            isValid = false
-                        end
-                        if isValid then
-                            local displayName = game.GetDisplayName({ Text = upgradeName })
-                            addBoonToRuntime(key, upgradeName, index, displayName)
-                            index = index + 1
-                        end
-                    end
+            local entry = baseCatalog[key]
+            if entry and entry.boons then
+                for _, boon in ipairs(entry.boons) do
+                    addBoonToRuntime(key, boon)
                 end
             end
             internal.UpdateGodStats(key)
@@ -233,7 +84,7 @@ local function PopulateGodInfo()
             local parentEntry = godInfo[parentKey]
             if parentEntry then
                 for _, parentBoon in ipairs(parentEntry.boons) do
-                    addBoonToRuntime(key, parentBoon.Key, parentBoon.Bit, parentBoon.Name)
+                    addBoonToRuntime(key, parentBoon)
                 end
                 internal.UpdateGodStats(key)
             end

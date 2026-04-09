@@ -3,7 +3,9 @@ local meta = {}
 local internal = RunDirectorBoonBans_Internal
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    local definitionId = internal.definition and internal.definition.id or "BoonBans"
+    local debugEnabled = store and type(store.read) == "function" and store.read("DebugMode") == true or false
+    lib.log(definitionId, debugEnabled, fmt, ...)
 end
 
 -- =============================================================================
@@ -36,7 +38,7 @@ local function GetBitCount(source, defaultPrefix)
         local data
 
         if container and container[source.key] then
-            data = container[source.key] -- Found: LootSetData.Apollo.ApolloUpgrade
+            data = container[source.key]
         else
             -- Step 2: Fallback for loose tables (or if inside LootSetData.Loot)
             data = LootSetData[source.key] or (LootSetData.Loot and LootSetData.Loot[source.key])

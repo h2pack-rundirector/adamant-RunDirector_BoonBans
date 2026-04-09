@@ -67,6 +67,7 @@ function uiData.BuildRarityRows(root)
                 key = boon.Key,
                 name = uiData.GetBoonText(boon),
                 bit = boon.Bit,
+                alias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key),
             })
         end
     end
@@ -82,30 +83,41 @@ function uiData.GetRarityRows(root)
     return rows
 end
 
-local RARITY_BADGE_NODE = {
-    type = "rarityBadge",
-}
+local rarityBadgeNodesByAlias = {}
 
-lib.prepareWidgetNode(RARITY_BADGE_NODE, "BoonBans rarityBadge", internal.definition.customTypes)
+local function GetRarityBadgeNode(alias)
+    if type(alias) ~= "string" or alias == "" then
+        return nil
+    end
 
-function uiData.DrawRarityStepper(ui, root, row, uiState, options)
-    options = options or {}
-    local rarityWidget = internal.definition.customTypes
-        and internal.definition.customTypes.widgets
-        and internal.definition.customTypes.widgets.rarityBadge
-    if not rarityWidget then return end
-    local syntheticBound = {
-        value = {
-            get = function(_) return internal.GetRarityValue(root.primaryScopeKey, row.bit, uiState) end,
-            set = function(_, val) internal.SetRarityValue(root.primaryScopeKey, row.bit, val, uiState) end,
-        },
+    local node = rarityBadgeNodesByAlias[alias]
+    if node then
+        return node
+    end
+
+    node = {
+        type = "rarityBadge",
+        binds = { value = alias },
     }
+    lib.prepareUiNode(
+        node,
+        "BoonBans rarityBadge " .. alias,
+        internal.definition.storage,
+        internal.definition.customTypes)
+    rarityBadgeNodesByAlias[alias] = node
+    return node
+end
+
+function uiData.DrawRarityStepper(ui, _root, row, uiState, options)
+    options = options or {}
+    local rarityNode = GetRarityBadgeNode(row.alias)
+    if not rarityNode then return end
     ui.PushID("rarity_" .. row.key)
     if not options.compact then
         ui.Text(row.name)
         ui.SameLine(RARITY_CONTROL_OFFSET)
     end
-    rarityWidget.draw(ui, RARITY_BADGE_NODE, syntheticBound)
+    lib.drawUiNode(ui, rarityNode, uiState, nil, internal.definition.customTypes)
     ui.PopID()
 end
 
@@ -179,6 +191,7 @@ function uiData.DrawForceView(ui, root, uiState)
                 uiData.DrawRarityStepper(ui, root, {
                     key = scope.key .. "::" .. forcedBoon.Key,
                     bit = forcedBoon.Bit,
+                    alias = internal.GetRarityAlias(root.primaryScopeKey, forcedBoon.Key),
                 }, uiState, {
                     compact = true,
                 })

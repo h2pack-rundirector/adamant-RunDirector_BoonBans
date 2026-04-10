@@ -1,6 +1,9 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
+public.definition = public.definition or internal.definition or {}
+internal.definition = public.definition
+
 local function GetBridalGlowEligibleRoots(uiState)
     if uiData.bridalGlowEligibleRoots then
         return uiData.bridalGlowEligibleRoots
@@ -88,33 +91,6 @@ end
 
 public.definition.customTypes = {
     widgets = {
-        banSummary = {
-            binds = {},
-            slots = { "value" },
-            validate = function(node, _)
-                if type(node.scopeKey) ~= "string" or node.scopeKey == "" then
-                    node.scopeKey = nil
-                end
-            end,
-            draw = function(ui, node, _, _, uiState)
-                if not node.scopeKey then
-                    return false
-                end
-                local banned, total = uiData.GetScopeSummary(node.scopeKey, uiState)
-                local text = uiData.FormatCountLabel(banned, total)
-                return lib.drawWidgetSlots(ui, node, {
-                    {
-                        name = "value",
-                        draw = function(imgui, slot)
-                            lib.alignSlotContent(imgui, slot,
-                                type(imgui.CalcTextSize) == "function" and imgui.CalcTextSize(text) or #(tostring(text)))
-                            imgui.TextDisabled(text)
-                            return false
-                        end,
-                    },
-                })
-            end,
-        },
         disabledText = {
             binds = {},
             slots = { "value" },
@@ -170,33 +146,6 @@ public.definition.customTypes = {
                 end
 
                 return changed
-            end,
-        },
-        bridalGlowSummary = {
-            binds = {},
-            slots = { "value" },
-            validate = function(_, _) end,
-            draw = function(ui, node, _, _, uiState)
-                local _ = node
-                local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
-                local eligibleRoots = GetBridalGlowEligibleRoots(uiState)
-                local currentTarget = GetCurrentBridalGlowTarget(eligibleRoots, selectedBoonKey)
-
-                return lib.drawWidgetSlots(ui, node, {
-                    {
-                        name = "value",
-                        draw = function(imgui)
-                            if currentTarget then
-                                imgui.Text("Current Target:")
-                                imgui.SameLine()
-                                imgui.TextDisabled(currentTarget.BridalGlowLabel)
-                            else
-                                imgui.TextDisabled("Current Target: Random")
-                            end
-                            return false
-                        end,
-                    },
-                })
             end,
         },
         bridalGlowPicker = {
@@ -316,57 +265,6 @@ public.definition.customTypes = {
                 if nextValue ~= current then bound.value:set(nextValue) end
             end,
         },
-        forceStatus = {
-            binds = { value = { storageType = "int" } },
-            slots = { "value" },
-            validate = function(node, _)
-                if type(node.scopeKey) ~= "string" or node.scopeKey == "" then
-                    node.scopeKey = nil
-                end
-                if node.rarityScopeKey ~= nil and (type(node.rarityScopeKey) ~= "string" or node.rarityScopeKey == "") then
-                    node.rarityScopeKey = nil
-                end
-            end,
-            draw = function(ui, node, bound, _, uiState)
-                if not node.scopeKey then
-                    return false
-                end
-                local currentMask = bound.value:get() or 0
-                local forcedBoon, isNone, isCustom = uiData.GetForcedBoonSelection(node.scopeKey, currentMask)
-                local rarityScopeKey = node.rarityScopeKey
-                local rarityAlias = rarityScopeKey
-                    and forcedBoon
-                    and uiData.IsRarityEligibleBoon(forcedBoon)
-                    and internal.GetRarityAlias(rarityScopeKey, forcedBoon.Key)
-                    or nil
-                local text = forcedBoon and uiData.GetForcedBoonStatusText(forcedBoon) or ""
-
-                return lib.drawWidgetSlots(ui, node, {
-                    {
-                        name = "value",
-                        draw = function(imgui, slot)
-                            if isNone or isCustom or not forcedBoon then
-                                imgui.Text("")
-                                return false
-                            end
-
-                            if rarityAlias then
-                                return uiData.DrawRarityBadgeNode(
-                                    imgui,
-                                    rarityAlias,
-                                    uiState,
-                                    node.scopeKey .. "::" .. forcedBoon.Key)
-                            end
-
-                            lib.alignSlotContent(imgui, slot,
-                                type(imgui.CalcTextSize) == "function" and imgui.CalcTextSize(text) or #(tostring(text)))
-                            imgui.Text(text)
-                            return false
-                        end,
-                    },
-                })
-            end,
-        },
         paddingOptions = {
             binds = {},
             slots = { "value" },
@@ -406,58 +304,6 @@ public.definition.customTypes = {
                             end
                             imgui.Unindent()
                             return changed
-                        end,
-                    },
-                })
-            end,
-        },
-        dangerButton = {
-            binds = {},
-            slots = { "control" },
-            validate = function(node, _)
-                if type(node.actionId) ~= "string" or node.actionId == "" then
-                    node.actionId = nil
-                end
-                if type(node.buttonLabel) ~= "string" or node.buttonLabel == "" then
-                    node.buttonLabel = "Action"
-                end
-                if type(node.confirmLabel) ~= "string" or node.confirmLabel == "" then
-                    node.confirmLabel = "Confirm"
-                end
-                if type(node.onConfirm) ~= "function" then
-                    node.onConfirm = nil
-                end
-            end,
-            draw = function(ui, node, _, _, uiState)
-                if not node.actionId then
-                    return false
-                end
-                uiData.ExpirePendingDanger()
-                return lib.drawWidgetSlots(ui, node, {
-                    {
-                        name = "control",
-                        draw = function(imgui)
-                            local actionId = node.actionId
-                            if uiData.pendingDanger and uiData.pendingDanger.action == actionId then
-                                if imgui.Button(node.confirmLabel .. "##" .. actionId) then
-                                    uiData.pendingDanger = nil
-                                    if node.onConfirm then node.onConfirm(uiState) end
-                                    return true
-                                end
-                                imgui.SameLine()
-                                if imgui.Button("Cancel##" .. actionId) then
-                                    uiData.pendingDanger = nil
-                                    return true
-                                end
-                                imgui.SameLine()
-                                local remaining = math.max(0, uiData.pendingDanger.expiresAt - os.clock())
-                                imgui.TextDisabled(string.format("Confirmation expires in %.1fs", remaining))
-                                return false
-                            end
-                            if imgui.Button(node.buttonLabel .. "##" .. actionId) then
-                                uiData.ArmDangerAction(actionId)
-                            end
-                            return false
                         end,
                     },
                 })

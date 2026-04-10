@@ -95,9 +95,10 @@ end
 
 function uiData.DrawForceView(ui, root, uiState)
     local panelNode = uiData.GetForcePanelNode(root)
+    local runtimeLayout = uiData.GetForcePanelRuntimeLayout(root, uiState)
     if panelNode then
         ui.PushID("force_" .. root.id)
-        if lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes) then
+        if lib.drawUiNode(ui, panelNode, uiState, nil, internal.definition.customTypes, nil, runtimeLayout) then
             for _, scope in ipairs(root.scopes) do
                 internal.UpdateGodStats(scope.key, uiState)
             end

@@ -61,6 +61,22 @@ local ROOT_DETAIL_HEADER_COLUMNS = {
     { name = "summary", start = 220 },
 }
 
+local function GetCurrentBridalGlowTargetLabel(uiState)
+    local selectedBoonKey = uiState and uiState.view and uiState.view.BridalGlowTargetBoon or ""
+    if selectedBoonKey == nil or selectedBoonKey == "" then
+        return nil
+    end
+
+    local eligibleRoots = uiData.GetVisibleRoots("Olympians", uiState)
+    for _, root in ipairs(eligibleRoots or uiData.EMPTY_LIST) do
+        local boon = uiData.FindBoonByKey(root.primaryScopeKey, selectedBoonKey)
+        if boon and uiData.IsBridalGlowEligibleBoon(boon) then
+            return boon.BridalGlowLabel or uiData.GetBoonText(boon)
+        end
+    end
+    return nil
+end
+
 local function PrepareNode(node, label)
     lib.prepareUiNode(
         node,
@@ -98,6 +114,63 @@ function uiData.DrawRarityBadgeNode(ui, alias, uiState, rowKey)
     local changed = lib.drawUiNode(ui, node, uiState, nil, internal.definition.customTypes)
     ui.PopID()
     return changed
+end
+
+local function GetForceStatusTextKey(scopeKey)
+    return tostring(scopeKey) .. "::status_text"
+end
+
+local function GetForceStatusBadgeKey(scopeKey, boonKey)
+    return tostring(scopeKey) .. "::badge::" .. tostring(boonKey)
+end
+
+local function GetForceStatusMode(scopeKey, rarityScopeKey, uiState)
+    local currentMask = internal.GetBanConfig(scopeKey, uiState)
+    local forcedBoon, isNone, isCustom = uiData.GetForcedBoonSelection(scopeKey, currentMask)
+    if isNone or isCustom or not forcedBoon then
+        return {
+            kind = "empty",
+            boonKey = nil,
+        }
+    end
+
+    local rarityAlias = rarityScopeKey
+        and uiData.IsRarityEligibleBoon(forcedBoon)
+        and internal.GetRarityAlias(rarityScopeKey, forcedBoon.Key)
+        or nil
+    if rarityAlias then
+        return {
+            kind = "rarityBadge",
+            boonKey = forcedBoon.Key,
+            rarityAlias = rarityAlias,
+        }
+    end
+
+    return {
+        kind = "text",
+        boonKey = forcedBoon.Key,
+    }
+end
+
+local function BuildForcePanelRuntimeLayout(root, uiState)
+    local runtimeLayout = { children = {} }
+
+    for _, scope in ipairs(root.scopes or uiData.EMPTY_LIST) do
+        local mode = GetForceStatusMode(scope.key, root.hasRarity and root.primaryScopeKey or nil, uiState)
+        local textKey = GetForceStatusTextKey(scope.key)
+        runtimeLayout.children[textKey] = { hidden = mode.kind ~= "text" }
+
+        for _, boon in ipairs(uiData.GetScopeBoons(scope.key)) do
+            if uiData.IsRarityEligibleBoon(boon) then
+                local badgeKey = GetForceStatusBadgeKey(scope.key, boon.Key)
+                runtimeLayout.children[badgeKey] = {
+                    hidden = not (mode.kind == "rarityBadge" and mode.boonKey == boon.Key),
+                }
+            end
+        end
+    end
+
+    return runtimeLayout
 end
 
 function uiData.GetRarityPanelNode(root)
@@ -171,8 +244,22 @@ local function BuildBanControlsPanelSpec(scopeKey)
         columns = BANS_CONTROL_COLUMNS,
         children = {
             {
-                type = "banSummary",
-                scopeKey = scopeKey,
+                type = "dynamicText",
+                getText = function(_, uiState)
+                    local listNode = uiData.GetBanListNode(scopeKey)
+                    local summary = listNode
+                        and lib.getWidgetSummary(listNode, uiState, nil, internal.definition.customTypes)
+                        or nil
+                    local data = summary and summary.data or nil
+                    if data then
+                        return uiData.FormatCountLabel(data.checkedCount or 0, data.totalCount or 0)
+                    end
+                    local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
+                    return uiData.FormatCountLabel(banned, total)
+                end,
+                getColor = function()
+                    return { 0.6, 0.6, 0.6, 1.0 }
+                end,
                 panel = { column = "summary", line = 1, slots = { "value" } },
             },
             {
@@ -297,7 +384,14 @@ function uiData.GetBridalGlowPanelNode(root)
                 panel = { column = "content", line = 1, slots = { "value" } },
             },
             {
-                type = "bridalGlowSummary",
+                type = "dynamicText",
+                getText = function(_, uiState)
+                    local currentLabel = GetCurrentBridalGlowTargetLabel(uiState)
+                    if currentLabel and currentLabel ~= "" then
+                        return "Current Target: " .. currentLabel
+                    end
+                    return "Current Target: Random"
+                end,
                 panel = { column = "content", line = 2, slots = { "value" } },
             },
             {
@@ -438,12 +532,41 @@ function uiData.GetForcePanelNode(root)
                 panel = { column = "control", line = lineIndex, slots = { "control" } },
             }
             children[#children + 1] = {
-                type = "forceStatus",
-                binds = { value = bindAlias },
-                scopeKey = scope.key,
-                rarityScopeKey = root.hasRarity and root.primaryScopeKey or nil,
-                panel = { column = "status", line = lineIndex, slots = { "value" } },
+                type = "dynamicText",
+                getText = function(_, uiState)
+                    local currentMask = internal.GetBanConfig(scope.key, uiState)
+                    local forcedBoon, isNone, isCustom = uiData.GetForcedBoonSelection(scope.key, currentMask)
+                    if isNone or isCustom or not forcedBoon then
+                        return ""
+                    end
+                    return uiData.GetForcedBoonStatusText(forcedBoon)
+                end,
+                panel = {
+                    column = "status",
+                    line = lineIndex,
+                    slots = { "value" },
+                    key = GetForceStatusTextKey(scope.key),
+                },
             }
+
+            if root.hasRarity then
+                for _, boon in ipairs(uiData.GetScopeBoons(scope.key)) do
+                    if uiData.IsRarityEligibleBoon(boon) then
+                        local rarityAlias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key)
+                        if rarityAlias then
+                            children[#children + 1] = {
+                                type = "rarityBadge",
+                                binds = { value = rarityAlias },
+                                panel = {
+                                    column = "status",
+                                    line = lineIndex,
+                                    key = GetForceStatusBadgeKey(scope.key, boon.Key),
+                                },
+                            }
+                        end
+                    end
+                end
+            end
         end
     end
 
@@ -454,6 +577,13 @@ function uiData.GetForcePanelNode(root)
     }, "BoonBans forcePanel " .. root.id)
     nodeCache.forcePanels[root.id] = node
     return node
+end
+
+function uiData.GetForcePanelRuntimeLayout(root, uiState)
+    if type(root) ~= "table" or type(root.id) ~= "string" or root.id == "" then
+        return nil
+    end
+    return BuildForcePanelRuntimeLayout(root, uiState)
 end
 
 function uiData.GetSettingsPanelNode()
@@ -503,10 +633,10 @@ function uiData.GetSettingsPanelNode()
                 panel = { column = "content", line = 7 },
             },
             {
-                type = "dangerButton",
-                actionId = "reset_all_bans",
-                buttonLabel = "RESET ALL BANS (Global)",
+                type = "confirmButton",
+                label = "RESET ALL BANS (Global)",
                 confirmLabel = "Confirm RESET ALL BANS",
+                timeoutSeconds = uiData.CONFIRM_TIMEOUT,
                 onConfirm = function(uiState)
                     if internal.ResetAllBans(uiState) then
                         internal.RecalculateBannedCounts(uiState)
@@ -515,10 +645,10 @@ function uiData.GetSettingsPanelNode()
                 panel = { column = "content", line = 8, slots = { "control" } },
             },
             {
-                type = "dangerButton",
-                actionId = "reset_all_rarity",
-                buttonLabel = "RESET ALL RARITY (Global)",
+                type = "confirmButton",
+                label = "RESET ALL RARITY (Global)",
                 confirmLabel = "Confirm RESET ALL RARITY",
+                timeoutSeconds = uiData.CONFIRM_TIMEOUT,
                 onConfirm = function(uiState)
                     internal.ResetAllRarity(uiState)
                 end,

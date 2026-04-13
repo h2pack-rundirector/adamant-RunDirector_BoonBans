@@ -397,62 +397,14 @@ function uiData.GetForcePanelNode(root)
                 panel = { column = "label", line = 1 },
             }
             rowChildren[#rowChildren + 1] = {
-                type = "mappedDropdown",
+                type = "packedDropdown",
                 binds = { value = bindAlias },
                 label = "",
-                getPreview = function(_, bound)
-                    local currentMask = bound.value:get() or 0
-                    local forcedBoon, isNone, isCustom = uiData.GetForcedBoonSelection(scope.key, currentMask)
-                    return isNone and "None"
-                        or isCustom and "Multiple"
-                        or uiData.GetForcedBoonDisplayLabel(forcedBoon)
-                end,
-                getPreviewColor = function(_, bound)
-                    local currentMask = bound.value:get() or 0
-                    local forcedBoon, isNone, isCustom = uiData.GetForcedBoonSelection(scope.key, currentMask)
-                    if isNone or isCustom then
-                        return nil
-                    end
-                    return uiData.GetBoonMarkerColor(forcedBoon)
-                end,
-                getOptions = function(_, bound)
-                    local meta = uiData.GetRootMeta(scope.key)
-                    local packedConfig = meta and meta.packedConfig or nil
-                    local fullMask = packedConfig and (bit32.lshift(1, packedConfig.bits) - 1) or 0
-                    local currentMask = bound.value:get() or 0
-                    local forcedBoon, isNone = uiData.GetForcedBoonSelection(scope.key, currentMask)
-                    local options = {
-                        {
-                            id = "none",
-                            label = "None",
-                            selected = isNone == true,
-                            onSelect = function(_, boundValue)
-                                if currentMask ~= 0 then
-                                    boundValue:set(0)
-                                    return true
-                                end
-                                return false
-                            end,
-                        },
-                    }
-                    for _, boon in ipairs(uiData.GetScopeBoons(scope.key)) do
-                        options[#options + 1] = {
-                            id = boon.Key,
-                            label = uiData.GetForcedBoonDisplayLabel(boon),
-                            color = uiData.GetBoonMarkerColor(boon),
-                            selected = forcedBoon and boon.Key == forcedBoon.Key or false,
-                            onSelect = function(_, boundValue)
-                                local nextMask = bit32.band(fullMask, bit32.bnot(boon.Mask))
-                                if nextMask ~= currentMask then
-                                    boundValue:set(nextMask)
-                                    return true
-                                end
-                                return false
-                            end,
-                        }
-                    end
-                    return options
-                end,
+                selectionMode = "singleRemaining",
+                noneLabel = "None",
+                multipleLabel = "Multiple",
+                displayValues = uiData.BuildPackedBanDisplayValues(scope.key),
+                valueColors = uiData.BuildPackedBanValueColors(scope.key),
                 geometry = {
                     slots = {
                         { name = "control", width = 200 },

@@ -245,6 +245,23 @@ function uiData.BuildPackedBanValueColors(scopeKey)
     return colors
 end
 
+function uiData.BuildPackedBanDisplayValues(scopeKey)
+    local displayValues = {}
+    local rootAlias = internal.GetBanRootAlias(scopeKey)
+    if type(rootAlias) ~= "string" or rootAlias == "" then
+        return displayValues
+    end
+
+    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
+        local childAlias = internal.MakeBanAlias(rootAlias, boon.Key)
+        if type(childAlias) == "string" and childAlias ~= "" then
+            displayValues[childAlias] = uiData.GetForcedBoonDisplayLabel(boon)
+        end
+    end
+
+    return displayValues
+end
+
 function uiData.GetRootMeta(rootKey)
     return godMeta[rootKey]
 end

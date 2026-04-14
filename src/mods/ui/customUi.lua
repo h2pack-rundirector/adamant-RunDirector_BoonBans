@@ -18,10 +18,6 @@ local function ClampRarity(value)
     return numeric
 end
 
-local function SetAtomicCursor(ui, x, y)
-    ui.SetCursorPos(x, y)
-end
-
 public.definition = public.definition or internal.definition or {}
 internal.definition = public.definition
 
@@ -174,10 +170,9 @@ public.definition.customTypes = {
                 end
             end,
             draw = function(ui, node, bound, width, uiState)
+                local _ = width
                 local packedMask = bound.value and bound.value:get() or 0
                 local forcedBoon = uiData.GetForcedBoonSelection(node.forceScopeKey, packedMask)
-                local startX = ui.GetCursorPosX()
-                local startY = ui.GetCursorPosY()
                 if type(forcedBoon) ~= "table" or not uiData.IsRarityEligibleBoon(forcedBoon) then
                     return false
                 end
@@ -188,7 +183,8 @@ public.definition.customTypes = {
                 end
 
                 local currentValue = ClampRarity(uiState and uiState.view and uiState.view[rarityAlias])
-                local changed = false
+                local startX = ui.GetCursorPosX()
+                local startY = ui.GetCursorPosY()
                 local frameHeight = ui.GetFrameHeight()
                 local valueSlotStart = startX + 10
                 local valueText = tostring(uiData.RARITY_LABELS[currentValue] or currentValue)
@@ -196,34 +192,40 @@ public.definition.customTypes = {
                 local textWidth = ui.CalcTextSize(valueText)
                 local alignedValueX = valueSlotStart + math.max((100 - textWidth) / 2, 0)
                 local id = node._imguiId or rarityAlias or node.rarityScopeKey
-
-                ui.PushID(id)
-
-                SetAtomicCursor(ui, startX, startY)
-                if ui.Button("-") and currentValue > 0 then
-                    currentValue = currentValue - 1
-                    uiState.set(rarityAlias, currentValue)
-                    changed = true
+                local drawStructuredAt = lib.WidgetHelpers and lib.WidgetHelpers.drawStructuredAt
+                if type(drawStructuredAt) ~= "function" then
+                    return false
                 end
 
-                SetAtomicCursor(ui, alignedValueX, startY)
-                if type(valueColor) == "table" then
-                    ui.TextColored(valueColor[1], valueColor[2], valueColor[3], valueColor[4], valueText)
-                else
-                    ui.Text(valueText)
-                end
+                local changed = drawStructuredAt(ui, startX, startY, frameHeight, function()
+                    ui.PushID(id)
 
-                SetAtomicCursor(ui, startX + 100, startY)
-                if ui.Button("+") and currentValue < 3 then
-                    currentValue = currentValue + 1
-                    uiState.set(rarityAlias, currentValue)
-                    changed = true
-                end
+                    ui.SetCursorPos(startX, startY)
+                    local localChanged = false
+                    if ui.Button("-") and currentValue > 0 then
+                        currentValue = currentValue - 1
+                        uiState.set(rarityAlias, currentValue)
+                        localChanged = true
+                    end
 
-                ui.PopID()
+                    ui.SetCursorPos(alignedValueX, startY)
+                    if type(valueColor) == "table" then
+                        ui.TextColored(valueColor[1], valueColor[2], valueColor[3], valueColor[4], valueText)
+                    else
+                        ui.Text(valueText)
+                    end
 
-                SetAtomicCursor(ui, startX, startY + frameHeight)
-                return changed
+                    ui.SetCursorPos(startX + 100, startY)
+                    if ui.Button("+") and currentValue < 3 then
+                        currentValue = currentValue + 1
+                        uiState.set(rarityAlias, currentValue)
+                        localChanged = true
+                    end
+
+                    ui.PopID()
+                    return localChanged
+                end)
+                return changed == true
             end,
         },
     }

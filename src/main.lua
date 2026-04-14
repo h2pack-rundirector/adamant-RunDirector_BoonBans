@@ -128,7 +128,7 @@ internal.standaloneUi = nil
 
 local function RebuildStore()
     BuildDefinitionStorage()
-    public.store = lib.createStore(config, public.definition, dataDefaults)
+    public.store = lib.store.create(config, public.definition, dataDefaults)
     store = public.store
 end
 
@@ -157,11 +157,11 @@ local function init()
     import("mods/boon_catalog.lua")
     RebuildStore()
     registerHooks()
-    if lib.isEnabled(store, public.definition.modpack) then
-        lib.applyDefinition(public.definition, store)
+    if lib.coordinator.isEnabled(store, public.definition.modpack) then
+        lib.mutation.apply(public.definition, store)
     end
 
-    internal.standaloneUi = lib.standaloneSpecialUI(
+    internal.standaloneUi = lib.special.standaloneUI(
         public.definition,
         store,
         store.uiState,

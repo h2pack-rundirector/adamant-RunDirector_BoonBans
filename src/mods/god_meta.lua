@@ -5,7 +5,7 @@ local internal = RunDirectorBoonBans_Internal
 local function Log(fmt, ...)
     local definitionId = internal.definition and internal.definition.id or "BoonBans"
     local debugEnabled = store and type(store.read) == "function" and store.read("DebugMode") == true or false
-    lib.log(definitionId, debugEnabled, fmt, ...)
+    lib.logging.logIf(definitionId, debugEnabled, fmt, ...)
 end
 
 -- =============================================================================

@@ -43,7 +43,7 @@ local function EnsureNodeCacheVersion()
 end
 
 local function PrepareNode(node, label)
-    lib.prepareUiNode(
+    lib.ui.prepareNode(
         node,
         label,
         internal.definition.storage,
@@ -602,7 +602,7 @@ function uiData.GetMainTabsNode(uiState)
         "Settings",
     }, "|")
 
-    local cacheEntry, node = lib.getCachedPreparedNode(nodeCache.mainTabs, signature, function()
+    local cacheEntry, node = lib.special.getCachedPreparedNode(nodeCache.mainTabs, signature, function()
         local children = {}
         if olympiansState.panelNode then
             children[#children + 1] = olympiansState.panelNode
@@ -686,7 +686,7 @@ function uiData.GetDomainPanelNode(tabName, visibleRoots, totalCount, godPoolFil
     end
 
     local signature = BuildDomainPanelSignature(tabName, visibleRoots, totalCount, godPoolFiltering, uiState)
-    local cacheEntry, node = lib.getCachedPreparedNode(nodeCache.domainPanels[tabName], signature, function()
+    local cacheEntry, node = lib.special.getCachedPreparedNode(nodeCache.domainPanels[tabName], signature, function()
         local children = {}
         local domainNode = nil
 
@@ -791,7 +791,7 @@ function uiData.GetDomainTabsNode(tabName, visibleRoots, uiState)
     end
     local signature = table.concat(signatureParts, "|")
 
-    local cacheEntry, node = lib.getCachedPreparedNode(nodeCache.domainTabs[tabName], signature, function()
+    local cacheEntry, node = lib.special.getCachedPreparedNode(nodeCache.domainTabs[tabName], signature, function()
         local children = {}
         for _, root in ipairs(visibleRoots or uiData.EMPTY_LIST) do
             children[#children + 1] = BuildRootDetailSpec(root, uiState)

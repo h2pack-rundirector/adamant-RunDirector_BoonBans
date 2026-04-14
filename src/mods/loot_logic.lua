@@ -14,7 +14,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 local isKeepsakeOffering = false

@@ -27,7 +27,7 @@ end
 function uiData.DrawMainContent(ui, uiState)
     local mainTabsNode = uiData.GetMainTabsNode(uiState)
     if mainTabsNode then
-        return lib.drawUiNode(ui, mainTabsNode, uiState, nil, internal.definition.customTypes)
+        return lib.ui.drawNode(ui, mainTabsNode, uiState, nil, internal.definition.customTypes)
     end
     return false
 end
@@ -76,5 +76,5 @@ function internal.DrawQuickContent(ui, uiState, theme)
     if padChanged then
         uiState.set("EnablePadding", padVal)
     end
-    lib.drawUiNode(ui, uiData.GetQuickResetNode(), uiState, nil, internal.definition.customTypes)
+    lib.ui.drawNode(ui, uiData.GetQuickResetNode(), uiState, nil, internal.definition.customTypes)
 end

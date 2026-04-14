@@ -16,7 +16,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)

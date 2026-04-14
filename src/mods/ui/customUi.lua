@@ -2,8 +2,8 @@ local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
 local function ContractWarn(fmt, ...)
-    if lib and type(lib.contractWarn) == "function" then
-        lib.contractWarn("run-director", fmt, ...)
+    if lib and lib.logging and type(lib.logging.warn) == "function" then
+        lib.logging.warn("run-director", fmt, ...)
     end
 end
 
@@ -118,7 +118,7 @@ public.definition.customTypes = {
                 local godPaneWidth = 200
                 local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
                 local eligibleRoots = GetBridalGlowEligibleRoots(uiState)
-                local drawStructuredAt = lib.WidgetHelpers and lib.WidgetHelpers.drawStructuredAt
+                local drawStructuredAt = lib.registry.widgetHelpers and lib.registry.widgetHelpers.drawStructuredAt
                 if type(drawStructuredAt) ~= "function" then
                     return 0, 0, false
                 end
@@ -210,7 +210,7 @@ public.definition.customTypes = {
                 local textWidth = GetTextWidth(ui, valueText)
                 local alignedValueX = valueSlotStart + math.max((100 - textWidth) / 2, 0)
                 local id = node._imguiId or rarityAlias or node.rarityScopeKey
-                local drawStructuredAt = lib.WidgetHelpers and lib.WidgetHelpers.drawStructuredAt
+                local drawStructuredAt = lib.registry.widgetHelpers and lib.registry.widgetHelpers.drawStructuredAt
                 if type(drawStructuredAt) ~= "function" then
                     return 0, 0, false
                 end

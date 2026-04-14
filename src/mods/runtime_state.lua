@@ -16,11 +16,11 @@ local function GetRunState()
 end
 
 local function IsBoonBansActive()
-    return lib.isEnabled(store, internal.definition.modpack)
+    return lib.coordinator.isEnabled(store, internal.definition.modpack)
 end
 
 local function Log(fmt, ...)
-    lib.log(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
 local function GetRootKey(key)

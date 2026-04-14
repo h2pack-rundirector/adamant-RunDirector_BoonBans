@@ -113,63 +113,67 @@ public.definition.customTypes = {
             binds = {},
             slots = { "value" },
             validate = function(_, _) end,
-            draw = function(ui, node, _, x, y, _, _, uiState)
+            draw = function(ui, _, _, x, y, _, _, uiState)
                 local paneHeight = 220
                 local godPaneWidth = 200
                 local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
                 local eligibleRoots = GetBridalGlowEligibleRoots(uiState)
+                local drawStructuredAt = lib.WidgetHelpers and lib.WidgetHelpers.drawStructuredAt
+                if type(drawStructuredAt) ~= "function" then
+                    return 0, 0, false
+                end
+
                 if #eligibleRoots == 0 then
-                    return lib.drawWidgetSlots(ui, node, {
-                        {
-                            name = "value",
-                            draw = function(imgui)
-                                imgui.TextDisabled("No eligible Olympian gods are currently available.")
-                                return false
-                            end,
-                        },
-                    }, x, y)
+                    local changed = drawStructuredAt(ui, x, y, ui.GetFrameHeight(), function()
+                        ui.TextDisabled("No eligible Olympian gods are currently available.")
+                        return false
+                    end)
+                    return GetTextWidth(ui, "No eligible Olympian gods are currently available."), ui.GetFrameHeight(), changed == true
                 end
 
                 local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey)
                 local selectedRootKey = selectedRoot and selectedRoot.rootKey or nil
                 local eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
+                local totalWidth = godPaneWidth + 8
 
-                return lib.drawWidgetSlots(ui, node, {
-                    {
-                        name = "value",
-                        draw = function(imgui)
-                            imgui.BeginChild("##BridalGlowGodList", godPaneWidth, paneHeight, true)
-                            imgui.TextDisabled("Eligible Gods")
-                            imgui.Separator()
-                            for _, root in ipairs(eligibleRoots) do
-                                if imgui.Selectable(root.displayLabel, root.rootKey == selectedRootKey) then
-                                    uiData.bridalGlowSelection.rootKey = root.rootKey
-                                    selectedRoot = root
-                                    selectedRootKey = root.rootKey
-                                    eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
-                                end
-                            end
-                            imgui.EndChild()
+                local changed = drawStructuredAt(ui, x, y, paneHeight, function()
+                    local localChanged = false
 
-                            imgui.SameLine()
-                            imgui.BeginChild("##BridalGlowBoonList", 0, paneHeight, true)
-                            imgui.TextDisabled("Eligible Boons")
-                            imgui.Separator()
-                            if imgui.Selectable("Random", selectedBoonKey == "") then
-                                selectedBoonKey = ""
-                                internal.SetBridalGlowTargetBoonKey(nil, uiState)
-                            end
-                            for _, boon in ipairs(eligibleBoons) do
-                                if imgui.Selectable(boon.BridalGlowLabel, boon.Key == selectedBoonKey) then
-                                    selectedBoonKey = boon.Key
-                                    internal.SetBridalGlowTargetBoonKey(boon.Key, uiState)
-                                end
-                            end
-                            imgui.EndChild()
-                            return false
-                        end,
-                    },
-                }, x, y)
+                    ui.BeginChild("##BridalGlowGodList", godPaneWidth, paneHeight, true)
+                    ui.TextDisabled("Eligible Gods")
+                    ui.Separator()
+                    for _, root in ipairs(eligibleRoots) do
+                        if ui.Selectable(root.displayLabel, root.rootKey == selectedRootKey) then
+                            uiData.bridalGlowSelection.rootKey = root.rootKey
+                            selectedRoot = root
+                            selectedRootKey = root.rootKey
+                            eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
+                            localChanged = true
+                        end
+                    end
+                    ui.EndChild()
+
+                    ui.SetCursorPos(x + godPaneWidth + 8, y)
+                    ui.BeginChild("##BridalGlowBoonList", 0, paneHeight, true)
+                    ui.TextDisabled("Eligible Boons")
+                    ui.Separator()
+                    if ui.Selectable("Random", selectedBoonKey == "") then
+                        selectedBoonKey = ""
+                        internal.SetBridalGlowTargetBoonKey(nil, uiState)
+                        localChanged = true
+                    end
+                    for _, boon in ipairs(eligibleBoons) do
+                        if ui.Selectable(boon.BridalGlowLabel, boon.Key == selectedBoonKey) then
+                            selectedBoonKey = boon.Key
+                            internal.SetBridalGlowTargetBoonKey(boon.Key, uiState)
+                            localChanged = true
+                        end
+                    end
+                    ui.EndChild()
+
+                    return localChanged
+                end)
+                return totalWidth, paneHeight, changed == true
             end,
         },
         forceRarityStatus = {

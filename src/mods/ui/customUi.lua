@@ -111,11 +111,17 @@ public.definition.customTypes = {
     widgets = {
         bridalGlowPicker = {
             binds = {},
-            slots = { "value" },
-            validate = function(_, _) end,
-            draw = function(ui, _, _, x, y, _, _, uiState)
-                local paneHeight = 220
-                local godPaneWidth = 200
+            validate = function(node, _)
+                node._paneHeight = 220
+                node._godPaneWidth = 200
+                node._paneGap = 8
+                node._minimumWidth = node._godPaneWidth + node._paneGap
+            end,
+            draw = function(ui, node, _, x, y, availWidth, _, uiState)
+                local paneHeight = node._paneHeight or 220
+                local godPaneWidth = node._godPaneWidth or 200
+                local paneGap = node._paneGap or 8
+                local minimumWidth = node._minimumWidth or (godPaneWidth + paneGap)
                 local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
                 local eligibleRoots = GetBridalGlowEligibleRoots(uiState)
                 local drawStructuredAt = lib.registry.widgetHelpers and lib.registry.widgetHelpers.drawStructuredAt
@@ -134,9 +140,7 @@ public.definition.customTypes = {
                 local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey)
                 local selectedRootKey = selectedRoot and selectedRoot.rootKey or nil
                 local eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
-                local totalWidth = godPaneWidth + 8
-
-                local changed = drawStructuredAt(ui, x, y, paneHeight, function()
+                local changed, endX = drawStructuredAt(ui, x, y, paneHeight, function()
                     local localChanged = false
 
                     ui.BeginChild("##BridalGlowGodList", godPaneWidth, paneHeight, true)
@@ -153,7 +157,7 @@ public.definition.customTypes = {
                     end
                     ui.EndChild()
 
-                    ui.SetCursorPos(x + godPaneWidth + 8, y)
+                    ui.SetCursorPos(x + godPaneWidth + paneGap, y)
                     ui.BeginChild("##BridalGlowBoonList", 0, paneHeight, true)
                     ui.TextDisabled("Eligible Boons")
                     ui.Separator()
@@ -173,7 +177,13 @@ public.definition.customTypes = {
 
                     return localChanged
                 end)
-                return totalWidth, paneHeight, changed == true
+                local consumedWidth = minimumWidth
+                if type(availWidth) == "number" and availWidth > consumedWidth then
+                    consumedWidth = availWidth
+                elseif type(endX) == "number" and endX > x then
+                    consumedWidth = math.max(consumedWidth, endX - x)
+                end
+                return consumedWidth, paneHeight, changed == true
             end,
         },
         forceRarityStatus = {
@@ -187,6 +197,7 @@ public.definition.customTypes = {
                 if type(node.rarityScopeKey) ~= "string" or node.rarityScopeKey == "" then
                     ContractWarn("%s: forceRarityStatus rarityScopeKey must be a non-empty string", prefix)
                 end
+                node._controlWidth = 120
             end,
             draw = function(ui, node, bound, x, y, _, _, uiState)
                 local packedMask = bound.value and bound.value:get() or 0
@@ -204,11 +215,9 @@ public.definition.customTypes = {
                 local frameHeight = ui.GetFrameHeight()
                 local startX = x
                 local startY = y
-                local valueSlotStart = startX + 10
+                local controlWidth = node._controlWidth or 120
                 local valueText = tostring(uiData.RARITY_LABELS[currentValue] or currentValue)
                 local valueColor = uiData.RARITY_COLORS[currentValue]
-                local textWidth = GetTextWidth(ui, valueText)
-                local alignedValueX = valueSlotStart + math.max((100 - textWidth) / 2, 0)
                 local id = node._imguiId or rarityAlias or node.rarityScopeKey
                 local drawStructuredAt = lib.registry.widgetHelpers and lib.registry.widgetHelpers.drawStructuredAt
                 if type(drawStructuredAt) ~= "function" then
@@ -217,33 +226,42 @@ public.definition.customTypes = {
 
                 local changed = drawStructuredAt(ui, startX, startY, frameHeight, function()
                     ui.PushID(id)
-
                     ui.SetCursorPos(startX, startY)
                     local localChanged = false
-                    if ui.Button("-") and currentValue > 0 then
-                        currentValue = currentValue - 1
-                        uiState.set(rarityAlias, currentValue)
-                        localChanged = true
-                    end
-
-                    ui.SetCursorPos(alignedValueX, startY)
+                    ui.PushItemWidth(controlWidth)
+                    local opened
                     if type(valueColor) == "table" then
-                        ui.TextColored(valueColor[1], valueColor[2], valueColor[3], valueColor[4], valueText)
+                        ui.PushStyleColor(rom.ImGuiCol.Text, valueColor[1], valueColor[2], valueColor[3], valueColor[4])
+                        opened = ui.BeginCombo("##forceRarity", valueText)
+                        ui.PopStyleColor()
                     else
-                        ui.Text(valueText)
+                        opened = ui.BeginCombo("##forceRarity", valueText)
                     end
-
-                    ui.SetCursorPos(startX + 100, startY)
-                    if ui.Button("+") and currentValue < 3 then
-                        currentValue = currentValue + 1
-                        uiState.set(rarityAlias, currentValue)
-                        localChanged = true
+                    if opened then
+                        for rarity = 0, 3 do
+                            local label = tostring(uiData.RARITY_LABELS[rarity] or rarity)
+                            local color = uiData.RARITY_COLORS[rarity]
+                            local selected
+                            if type(color) == "table" then
+                                ui.PushStyleColor(rom.ImGuiCol.Text, color[1], color[2], color[3], color[4])
+                                selected = ui.Selectable(label, rarity == currentValue)
+                                ui.PopStyleColor()
+                            else
+                                selected = ui.Selectable(label, rarity == currentValue)
+                            end
+                            if selected and rarity ~= currentValue then
+                                currentValue = rarity
+                                uiState.set(rarityAlias, currentValue)
+                                localChanged = true
+                            end
+                        end
+                        ui.EndCombo()
                     end
-
+                    ui.PopItemWidth()
                     ui.PopID()
                     return localChanged
                 end)
-                return 120, frameHeight, changed == true
+                return controlWidth, frameHeight, changed == true
             end,
         },
     }

@@ -98,13 +98,18 @@ function uiData.BuildRootDescriptors()
                         label = "Bans",
                     })
                     uiData.rootIdByScopeKey[godKey] = godKey
+                    table.insert(desc.views, {
+                        id = uiData.FORCE_VIEW_ID,
+                        label = "Force",
+                        kind = "force",
+                    })
+                    table.insert(desc.views, {
+                        id = uiData.DIRECT_BANS_VIEW_ID,
+                        label = "Bans",
+                        kind = "bans",
+                        scopeKey = godKey,
+                    })
                     if desc.hasRarity then
-                        table.insert(desc.views, {
-                            id = uiData.DIRECT_BANS_VIEW_ID,
-                            label = "Bans",
-                            kind = "bans",
-                            scopeKey = godKey,
-                        })
                         table.insert(desc.views, {
                             id = uiData.RARITY_VIEW_ID,
                             label = "Rarity",
@@ -332,25 +337,6 @@ function uiData.GetRootSummaryLabel(root, uiState)
     return root.cachedSummaryLabel
 end
 
-function uiData.GetSelectorLabel(root, uiState)
-    local summary = uiData.GetRootSummaryLabel(root, uiState)
-    local isEquipped = uiData.IsEquippedHammerRoot(root)
-
-    if root.cachedSelectorLabel
-        and root.cachedSelectorEquipped == isEquipped
-        and root.cachedSelectorSummary == summary then
-        return root.cachedSelectorLabel
-    end
-
-    local label = root.displayLabel
-    if isEquipped then
-        label = label .. " (Equipped)"
-    end
-    root.cachedSelectorEquipped = isEquipped
-    root.cachedSelectorSummary = summary
-    root.cachedSelectorLabel = label .. " " .. summary
-    return root.cachedSelectorLabel
-end
 
 function uiData.GetRootHeaderSummary(root, uiState)
     if not root.isTiered then
@@ -367,6 +353,40 @@ function uiData.GetRootHeaderSummary(root, uiState)
     end
     root.cachedHeaderSummary = table.concat(parts, "   ")
     return root.cachedHeaderSummary
+end
+
+function uiData.GetSelectorLabel(root, uiState)
+    local isEquipped = uiData.IsEquippedHammerRoot(root)
+    local isCustomized = root.cachedIsCustomized
+    if isCustomized == nil then
+        isCustomized = false
+        for _, scope in ipairs(root.scopes) do
+            local banned = uiData.GetScopeSummary(scope.key, uiState)
+            if banned > 0 then
+                isCustomized = true
+                break
+            end
+        end
+        root.cachedIsCustomized = isCustomized
+    end
+
+    if root.cachedSelectorLabel
+        and root.cachedSelectorEquipped == isEquipped
+        and root.cachedSelectorSummary == isCustomized then
+        return root.cachedSelectorLabel
+    end
+
+    local label = root.displayLabel
+    if isEquipped then
+        label = ">> " .. label .. " <<"
+    end
+    if isCustomized then
+        label = label .. " *"
+    end
+    root.cachedSelectorEquipped = isEquipped
+    root.cachedSelectorSummary = isCustomized
+    root.cachedSelectorLabel = label
+    return root.cachedSelectorLabel
 end
 
 function uiData.GetRootNodeSignature(root, uiState)

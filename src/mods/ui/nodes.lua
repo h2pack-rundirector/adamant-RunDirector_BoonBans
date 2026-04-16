@@ -56,18 +56,29 @@ local function BuildRarityBadgeSpec(alias)
         return nil
     end
 
-    return {
-        type = "stepper",
+    -- return {
+    --     type = "stepper",
+    --     binds = { value = alias },
+    --     label = "",
+    --     min = 0,
+    --     max = 3,
+    --     step = 1,
+    --     displayValues = uiData.RARITY_LABELS,
+    --     valueColors = uiData.RARITY_COLORS,
+    --     valueWidth = 100,
+    --     valueAlign = "center",
+    -- }
+    return{
+        type = "dropdown",
         binds = { value = alias },
         label = "",
-        min = 0,
-        max = 3,
-        step = 1,
+        values = { 0, 1, 2, 3 },
         displayValues = uiData.RARITY_LABELS,
         valueColors = uiData.RARITY_COLORS,
-        valueWidth = 100,
-        valueAlign = "center",
+        controlGap = 0,
+        controlWidth = 120,
     }
+
 end
 
 function uiData.GetRarityBadgeNode(alias)
@@ -109,7 +120,8 @@ function uiData.GetRarityPanelNode(root)
                         {
                             type = "text",
                             text = row.name or row.key or row.alias,
-                            width = 300,
+                            width = 200,
+                            alignToFramePadding = true,
                         },
                         rarityNode,
                     },
@@ -148,6 +160,7 @@ local function BuildBanControlsPanelSpec(scopeKey)
                         type = "text",
                         binds = { value = uiData.GetBanSummaryAlias(scopeKey) },
                         color = uiData.MUTED_TEXT_COLOR,
+                        alignToFramePadding = true,
                     },
                     {
                         type = "hstack",
@@ -180,6 +193,7 @@ local function BuildBanControlsPanelSpec(scopeKey)
                     {
                         type = "text",
                         text = "Filter:",
+                        alignToFramePadding = true,
                     },
                     {
                         type = "split",
@@ -213,6 +227,7 @@ local function BuildBanControlsPanelSpec(scopeKey)
                                 label = "",
                                 values = { "all", "checked", "unchecked" },
                                 displayValues = displayValues,
+                                optionGap = 20,
                             },
                         },
                     },
@@ -325,11 +340,6 @@ function uiData.GetRootViewsTabsNode(root)
                     type = "vstack",
                     gap = 6,
                     children = {
-                        {
-                            type = "text",
-                            text = "Rarity applies across all tiers for this root.",
-                            color = uiData.MUTED_TEXT_COLOR,
-                        },
                         uiData.GetRarityPanelNode(root),
                     },
                 }
@@ -369,24 +379,21 @@ function uiData.GetForcePanelNode(root)
     for _, scope in ipairs(root.scopes or {}) do
         local bindAlias = internal.GetBanRootAlias(scope.key)
         if bindAlias then
-            local rowChildren = {}
-            rowChildren[#rowChildren + 1] = {
-                type = "text",
-                text = scope.label,
-            }
-            rowChildren[#rowChildren + 1] = {
-                type = "packedDropdown",
-                binds = { value = bindAlias },
-                label = "",
-                selectionMode = "singleRemaining",
-                noneLabel = "None",
-                multipleLabel = "Multiple",
-                displayValues = uiData.BuildPackedBanDisplayValues(scope.key),
-                valueColors = uiData.BuildPackedBanValueColors(scope.key),
-                controlWidth = 200,
+            local controlChildren = {
+                {
+                    type = "packedDropdown",
+                    binds = { value = bindAlias },
+                    label = "",
+                    selectionMode = "singleRemaining",
+                    noneLabel = "None",
+                    multipleLabel = "Multiple",
+                    displayValues = uiData.BuildPackedBanDisplayValues(scope.key),
+                    valueColors = uiData.BuildPackedBanValueColors(scope.key),
+                    controlWidth = 200,
+                },
             }
             if root.hasRarity then
-                rowChildren[#rowChildren + 1] = {
+                controlChildren[#controlChildren + 1] = {
                     type = "forceRarityStatus",
                     binds = { value = bindAlias },
                     forceScopeKey = scope.key,
@@ -394,9 +401,22 @@ function uiData.GetForcePanelNode(root)
                 }
             end
             children[#children + 1] = {
-                type = "hstack",
+                type = "split",
+                orientation = "horizontal",
+                firstSize = 80,
                 gap = 12,
-                children = rowChildren,
+                children = {
+                    {
+                        type = "text",
+                        text = scope.label,
+                        alignToFramePadding = true,
+                    },
+                    {
+                        type = "hstack",
+                        gap = 80,
+                        children = controlChildren,
+                    },
+                },
             }
         end
     end
@@ -426,27 +446,16 @@ function uiData.GetSettingsPanelNode()
                 label = "Enable Padding",
             },
             {
-                type = "text",
-                text = "Fills up menus to ensure enough options are available.",
-                color = uiData.MUTED_TEXT_COLOR,
-            },
-            {
                 type = "vstack",
                 gap = 6,
                 visibleIf = "EnablePadding",
                 children = {
                     {
-                        type = "stepper",
+                        type = "dropdown",
                         binds = { value = "Padding_PrioritizeCoreForFirstN" },
-                        label = "Prioritize Core Boons for First N",
-                        min = 0,
-                        max = 15,
-                        step = 1,
-                    },
-                    {
-                        type = "text",
-                        text = "(0 = disabled, N = prefer core boons in padding for the first N picks from each god.)",
-                        color = uiData.MUTED_TEXT_COLOR,
+                        label = "Prioritize Core Boons for First Picks",
+                        values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 },
+                        controlWidth = 60,
                     },
                     {
                         type = "checkbox",
@@ -461,17 +470,11 @@ function uiData.GetSettingsPanelNode()
                 },
             },
             {
-                type = "stepper",
+                type = "dropdown",
                 binds = { value = "ImproveFirstNBoonRarity" },
-                label = "Improve N Boon Rarity to Epic",
-                min = 0,
-                max = 15,
-                step = 1,
-            },
-            {
-                type = "text",
-                text = "(Improve the rarity of offered boons unless specifically forced by config.)",
-                color = uiData.MUTED_TEXT_COLOR,
+                label = "Force First N Boons to Be Epic",
+                values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+                controlWidth = 60,
             },
             {
                 type = "confirmButton",
@@ -524,6 +527,7 @@ function uiData.GetNpcRegionFilterPanelNode()
                 label = "",
                 values = { 1, 2, 3, 4 },
                 displayValues = displayValues,
+                optionGap = 20,
             },
         },
     }, "BoonBans npcRegionFilterPanel")
@@ -730,40 +734,10 @@ function uiData.GetDomainPanelNode(tabName, visibleRoots, totalCount, godPoolFil
     return node
 end
 
-local function BuildRootDetailHeaderSpec(root, uiState)
-    local titleNode = {
-        type = "text",
-        text = root.displayLabel,
-        color = uiData.GetSourceColor(root.primaryScopeKey),
-    }
-
-    local headerSummary = uiData.GetRootHeaderSummary(root, uiState)
-    if type(headerSummary) ~= "string" or headerSummary == "" then
-        return titleNode
-    end
-
-    return {
-        type = "split",
-        orientation = "horizontal",
-        firstSize = 220,
-        gap = 12,
-        children = {
-            titleNode,
-            {
-                type = "text",
-                text = headerSummary,
-                color = uiData.MUTED_TEXT_COLOR,
-            },
-        },
-    }
-end
-
 local function BuildRootDetailSpec(root, uiState)
-    local children = {
-        BuildRootDetailHeaderSpec(root, uiState),
-    }
+    local children = {}
 
-    if root.isTiered or root.hasRarity then
+    if type(root.views) == "table" and #root.views > 0 then
         children[#children + 1] = uiData.GetRootViewsTabsNode(root)
     else
         children[#children + 1] = uiData.GetBanPanelNode(root.primaryScopeKey)
@@ -794,7 +768,11 @@ function uiData.GetDomainTabsNode(tabName, visibleRoots, uiState)
     local cacheEntry, node = lib.special.getCachedPreparedNode(nodeCache.domainTabs[tabName], signature, function()
         local children = {}
         for _, root in ipairs(visibleRoots or uiData.EMPTY_LIST) do
-            children[#children + 1] = BuildRootDetailSpec(root, uiState)
+            local child = BuildRootDetailSpec(root, uiState)
+            if tabName == "NPCs" then
+                child.tabGroup = root.group
+            end
+            children[#children + 1] = child
         end
 
         return PrepareNode({

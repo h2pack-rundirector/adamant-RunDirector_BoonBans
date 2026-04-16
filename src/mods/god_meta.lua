@@ -15,8 +15,8 @@ end
 local GROUP_CORE       = "Core"
 local GROUP_BONUS      = "Bonus"
 local GROUP_HAMMERS    = "Hammers"
-local GROUP_UW_NPC     = "UW NPC"
-local GROUP_SF_NPC     = "SF NPC"
+local GROUP_UW_NPC     = "Underworld"
+local GROUP_SF_NPC     = "Surface"
 local GROUP_KEEPSAKES  = "Keepsakes"
 
 local MAX_GOD_TIERS    = 5
@@ -159,7 +159,8 @@ local baseSingles = {
     { key = "Artemis",       color = "ArtemisDamage",     group = GROUP_BONUS,     configKey = "NPC_Artemis_Field_01" },
     { key = "Athena",        color = "AthenaDamageLight", group = GROUP_BONUS,     configKey = "NPC_Athena_01" },
     -- Keepsake
-    { key = "HadesKeepsake", color = "HadesVoice",        group = GROUP_KEEPSAKES, duplicateOf = "Hades",             lootSourceType = "Keepsake" }
+    { key = "HadesKeepsake", color = "HadesVoice",        group = GROUP_KEEPSAKES,
+    duplicateOf = "Hades", display = "Jeweled Pom", lootSourceType = "Keepsake" }
 }
 
 -- [D] SPECIALS (Complex Loot Sources)
@@ -287,10 +288,11 @@ for _, def in ipairs(baseWeapons) do
     RegisterGod(def.key, {
         key = def.key,
         displayTextKey = "1st " .. def.display,
-        colorKey = "RosyBrown",
+        colorKey = "NavajoWhite",
         packedConfig = { var = "Packed" .. def.key .. "1", offset = 0, bits = dynamicBits },
         lootSource = srcData,
         uiGroup = GROUP_HAMMERS,
+        showPackedValueColors = false,
         tier = 1,
         maxTiers = tiers -- Save the structural constant for logic padding
     })
@@ -300,11 +302,12 @@ for _, def in ipairs(baseWeapons) do
         RegisterGod(key, {
             key = key,
             displayTextKey = GetOrdinal(i) .. " " .. def.display,
-            colorKey = "RosyBrown",
+            colorKey = "NavajoWhite",
             packedConfig = { var = "Packed" .. def.key .. tostring(i), offset = 0, bits = dynamicBits },
             lootSource = srcData,
             duplicateOf = def.key,
             uiGroup = GROUP_HAMMERS,
+            showPackedValueColors = false,
             tier = i
         })
     end

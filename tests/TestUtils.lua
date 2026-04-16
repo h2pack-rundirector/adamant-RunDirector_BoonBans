@@ -172,7 +172,7 @@ local function makeBaseGodMeta()
         },
         HadesKeepsake = {
             key = "HadesKeepsake",
-            displayTextKey = "Hades Keepsake",
+            display = "Hades Keepsake",
             uiGroup = "Keepsakes",
             sortIndex = 4,
             packedConfig = { bits = 2 },

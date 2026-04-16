@@ -41,16 +41,16 @@ uiData.TAB_BY_GROUP = {
     Core = "Olympians",
     Bonus = "Other Gods",
     Hammers = "Hammers",
-    ["UW NPC"] = "NPCs",
-    ["SF NPC"] = "NPCs",
+    ["Underworld"] = "NPCs",
+    ["Surface"] = "NPCs",
     Keepsakes = "NPCs",
 }
 uiData.GROUP_ORDER = {
     Core = 1,
     Bonus = 2,
     Hammers = 3,
-    ["UW NPC"] = 4,
-    ["SF NPC"] = 5,
+    ["Underworld"] = 4,
+    ["Surface"] = 5,
     Keepsakes = 6,
 }
 uiData.BAN_FILTER_MODES = {
@@ -123,10 +123,10 @@ end
 
 function uiData.IsRegionMatch(group, regionValue)
     if regionValue == 4 then return true end
-    if group == "UW NPC" then
+    if group == "Underworld" then
         return regionValue == 2
     end
-    if group == "SF NPC" then
+    if group == "Surface" then
         return regionValue == 3
     end
     return true
@@ -227,6 +227,11 @@ function uiData.BuildPackedBanValueColors(scopeKey)
     local colors = {}
     local rootAlias = internal.GetBanRootAlias(scopeKey)
     if type(rootAlias) ~= "string" or rootAlias == "" then
+        return colors
+    end
+    local rootKey = internal.GetRootKey and internal.GetRootKey(scopeKey) or scopeKey
+    local rootMeta = internal.godMeta and internal.godMeta[rootKey] or nil
+    if type(rootMeta) == "table" and rootMeta.showPackedValueColors == false then
         return colors
     end
 

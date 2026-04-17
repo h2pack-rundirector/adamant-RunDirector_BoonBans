@@ -147,7 +147,7 @@ local function registerHooks()
     import("mods/runtime_state.lua")
     import("mods/npc_logic.lua")
     import("mods/loot_logic.lua")
-    import("mods/ui.lua")
+    import("mods/ui_lean.lua")
     SyncPublicExports()
 end
 

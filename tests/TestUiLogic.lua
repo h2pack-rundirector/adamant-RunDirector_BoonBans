@@ -2,66 +2,77 @@ local lu = require("luaunit")
 
 require("tests/TestUtils")
 
-TestUiRoots = {}
+TestUiShared = {}
 
-function TestUiRoots:setUp()
+function TestUiShared:setUp()
     self.ui, self.internal, self.state = ResetBoonBansUiHarness()
-    self.ui.BuildRootDescriptors()
-    self.apollo = self.ui.GetRootById("Apollo")
-    self.circe = self.ui.GetRootById("Circe")
 end
 
-function TestUiRoots:testBuildRootDescriptorsCreatesTieredViews()
-    lu.assertNotNil(self.apollo)
-    lu.assertTrue(self.apollo.isTiered)
-    lu.assertEquals(#self.apollo.scopes, 3)
-    lu.assertEquals(self.apollo.views[1].label, "Force")
-    lu.assertEquals(self.apollo.views[2].label, "1st")
-    lu.assertEquals(self.apollo.views[3].label, "2nd")
-    lu.assertEquals(self.apollo.views[4].label, "3rd")
-    lu.assertEquals(self.apollo.views[5].label, "Rarity")
+function TestUiShared:testBuildPackedBanDisplayValuesUsesSpecialLabels()
+    local displayValues = self.ui.BuildPackedBanDisplayValues("Apollo")
+
+    lu.assertEquals(displayValues.PackedApollo_Strike_Ban, "Strike")
+    lu.assertEquals(displayValues["PackedApollo_Wave Pair_Ban"], "[D] Wave Pair")
+    lu.assertEquals(displayValues["PackedApollo_Sun Glory_Ban"], "[L] Sun Glory")
+    lu.assertEquals(displayValues.PackedApollo_Infusion_Ban, "[I] Infusion")
 end
 
-function TestUiRoots:testGetRootSummaryLabelUsesChangedTierCount()
-    lu.assertEquals(self.ui.GetRootSummaryLabel(self.apollo, {}), "(2/3 tiers changed)")
-    lu.assertEquals(self.ui.GetRootSummaryLabel(self.circe, {}), "(1/3 Banned)")
+function TestUiShared:testBuildPackedBanValueColorsIncludesOnlySpecialBoons()
+    local colors = self.ui.BuildPackedBanValueColors("Apollo")
+
+    lu.assertNil(colors.PackedApollo_Strike_Ban)
+    lu.assertEquals(colors["PackedApollo_Wave Pair_Ban"], { 0.82, 1.0, 0.38, 1.0 })
+    lu.assertEquals(colors["PackedApollo_Sun Glory_Ban"], { 1.0, 0.56, 0.0, 1.0 })
+    lu.assertEquals(colors.PackedApollo_Infusion_Ban, { 1.0, 0.29, 1.0, 1.0 })
 end
 
-function TestUiRoots:testGetRootHeaderSummaryFormatsTierBanCounts()
+function TestUiShared:testGetScopeSummaryUsesStagedUiStateWhenProvided()
+    local uiState = {
+        get = function(key)
+            if key == "PackedApollo" then
+                return 9
+            end
+            return nil
+        end,
+    }
+
+    local banned, total = self.ui.GetScopeSummary("Apollo", uiState)
+
+    lu.assertEquals(banned, 2)
+    lu.assertEquals(total, 5)
+end
+
+function TestUiShared:testGetVisibleBanCountUsesTextFilterOnly()
+    local uiState = {
+        view = {
+            BanFilterText = "cast",
+        },
+    }
+
+    lu.assertEquals(self.ui.GetVisibleBanCount("Apollo", uiState), 1)
+    lu.assertEquals(self.ui.GetVisibleBanCount("Circe", uiState), 0)
+end
+
+function TestUiShared:testGetCurrentBridalGlowTargetTextUsesEligibleBoon()
+    local uiState = {
+        view = {
+            BridalGlowTargetBoon = "Hex",
+        },
+    }
+
+    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(uiState), "Current Target: Random")
+
+    self.internal.godInfo.Circe.boonByKey.Hex.IsBridalGlowEligible = true
+    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(uiState), "Current Target: Hex")
+end
+
+function TestUiShared:testGetRootDisplayLabelDropsTierPrefixForTieredRoots()
     lu.assertEquals(
-        self.ui.GetRootHeaderSummary(self.apollo, {}),
-        "1st:1/5   2nd:0/5   3rd:2/5"
+        self.ui.GetRootDisplayLabel("Apollo", self.internal.godMeta.Apollo),
+        "Apollo"
+    )
+    lu.assertEquals(
+        self.ui.GetRootDisplayLabel("Circe", self.internal.godMeta.Circe),
+        "Circe"
     )
 end
-
-function TestUiRoots:testGetCustomizedRootCountCountsEachRootOnce()
-    lu.assertEquals(self.ui.GetCustomizedRootCount({}), 2)
-end
-
-function TestUiRoots:testApplyForceOneWritesExpectedMaskAndUpdatesStats()
-    local changed = self.ui.ApplyForceOne("Apollo", "Cast", {})
-
-    lu.assertTrue(changed)
-    lu.assertEquals(self.state.banConfig.Apollo, 23)
-    lu.assertEquals(self.internal.godInfo.Apollo.banned, 4)
-    lu.assertEquals(self.state.getRecalcCalls(), 0)
-end
-
-TestUiViews = {}
-
-function TestUiViews:setUp()
-    self.ui, self.internal, self.state = ResetBoonBansUiHarness()
-    self.ui.BuildRootDescriptors()
-    self.apollo = self.ui.GetRootById("Apollo")
-end
-
-function TestUiViews:testBuildRarityRowsExcludesSpecialBoonTypes()
-    local rows = self.ui.BuildRarityRows(self.apollo)
-    local names = {}
-    for _, row in ipairs(rows) do
-        table.insert(names, row.name)
-    end
-
-    lu.assertEquals(names, { "Strike", "Cast" })
-end
-

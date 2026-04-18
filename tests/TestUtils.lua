@@ -139,21 +139,21 @@ local function makeBaseGodMeta()
             tier = 1,
             sortIndex = 1,
             rarityVar = "PackedApolloRarity",
-            packedConfig = { bits = 5 },
+            packedConfig = { bits = 5, var = "PackedApollo" },
         },
         Apollo2 = {
             key = "Apollo2",
             duplicateOf = "Apollo",
             tier = 2,
             uiGroup = "Core",
-            packedConfig = { bits = 5 },
+            packedConfig = { bits = 5, var = "PackedApollo2" },
         },
         Apollo3 = {
             key = "Apollo3",
             duplicateOf = "Apollo",
             tier = 3,
             uiGroup = "Core",
-            packedConfig = { bits = 5 },
+            packedConfig = { bits = 5, var = "PackedApollo3" },
         },
         Circe = {
             key = "Circe",
@@ -161,21 +161,21 @@ local function makeBaseGodMeta()
             uiGroup = "Bonus",
             sortIndex = 2,
             rarityVar = "PackedCirceRarity",
-            packedConfig = { bits = 3 },
+            packedConfig = { bits = 3, var = "PackedCirce" },
         },
         AxeHammer = {
             key = "AxeHammer",
             displayTextKey = "Axe Hammer",
             uiGroup = "Hammers",
             sortIndex = 3,
-            packedConfig = { bits = 2 },
+            packedConfig = { bits = 2, var = "PackedAxeHammer" },
         },
         HadesKeepsake = {
             key = "HadesKeepsake",
             display = "Hades Keepsake",
             uiGroup = "Keepsakes",
             sortIndex = 4,
-            packedConfig = { bits = 2 },
+            packedConfig = { bits = 2, var = "PackedHadesKeepsake" },
         },
     }
 end
@@ -269,7 +269,15 @@ function ResetBoonBansUiHarness(opts)
     local recalcCalls = 0
 
     internal.GetRootKey = opts.getRootKey
-    internal.GetBanConfig = function(godKey)
+    internal.GetBanConfig = function(godKey, uiState)
+        local meta = internal.godMeta[godKey]
+        local packedVar = meta and meta.packedConfig and meta.packedConfig.var or nil
+        if uiState and packedVar and type(uiState.get) == "function" then
+            local staged = uiState.get(packedVar)
+            if staged ~= nil then
+                return staged
+            end
+        end
         return banConfig[godKey] or 0
     end
     internal.SetBanConfig = function(godKey, value)
@@ -336,12 +344,19 @@ function ResetBoonBansUiHarness(opts)
     internal.GetBanAlias = function(scopeKey, boonKey)
         return scopeKey .. "_" .. boonKey .. "_Ban"
     end
+    internal.GetBanRootAlias = function(scopeKey)
+        local rootKey = internal.GetRootKey and internal.GetRootKey(scopeKey) or scopeKey
+        return "Packed" .. tostring(rootKey)
+    end
+    internal.MakeBanAlias = function(packedVar, boonKey)
+        return tostring(packedVar) .. "_" .. tostring(boonKey) .. "_Ban"
+    end
 
     import = function(path)
         dofile("src/" .. path)
     end
 
-    dofile("src/mods/ui.lua")
+    dofile("src/mods/ui/ui_lean.lua")
 
     for godKey, _ in pairs(internal.godInfo) do
         internal.UpdateGodStats(godKey)

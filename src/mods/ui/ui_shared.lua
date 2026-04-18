@@ -1,5 +1,4 @@
 local internal = RunDirectorBoonBans_Internal
-local godMeta = internal.godMeta
 local godInfo = internal.godInfo
 local uiData = internal.ui
 
@@ -37,79 +36,18 @@ uiData.NPC_REGION_OPTIONS = {
     { label = "Both", value = 4 },
 }
 uiData.BRIDAL_GLOW_VIEW_ID = "__bridal_glow__"
-uiData.TAB_BY_GROUP = {
-    Core = "Olympians",
-    Bonus = "Other Gods",
-    Hammers = "Hammers",
-    ["Underworld"] = "NPCs",
-    ["Surface"] = "NPCs",
-    Keepsakes = "NPCs",
-}
-uiData.GROUP_ORDER = {
-    Core = 1,
-    Bonus = 2,
-    Hammers = 3,
-    ["Underworld"] = 4,
-    ["Surface"] = 5,
-    Keepsakes = 6,
-}
-uiData.BAN_FILTER_MODES = {
-    { id = "all", label = "All" },
-    { id = "checked", label = "Banned" },
-    { id = "unchecked", label = "Allowed" },
-}
-uiData.BAN_FILTER_MODE_SET = {
-    all = true,
-    checked = true,
-    unchecked = true,
-}
 uiData.BAN_FILTER_TEXT_ALIAS = "BanFilterText"
-uiData.BAN_FILTER_MODE_ALIAS = "BanFilterMode"
-uiData.BRIDAL_GLOW_TARGET_TEXT_ALIAS = "Ui_BridalGlowCurrentTargetText"
 uiData.NPC_VIEW_REGION_ALIAS = "NpcViewRegion"
 uiData.DIRECT_BANS_VIEW_ID = "__bans__"
 uiData.FORCE_VIEW_ID = "__force__"
 uiData.RARITY_VIEW_ID = "__rarity__"
-uiData.CONFIRM_TIMEOUT = 5.0
-uiData.BAN_LABEL_START = 28
 
-uiData.rootDescriptors = nil
-uiData.rootsByMainTab = nil
-uiData.rootIdByScopeKey = nil
-uiData.visibleRootsByMainTab = {}
 uiData.bridalGlowEligibleRoots = nil
 uiData.rarityRowsByRoot = {}
 uiData.bridalGlowBoonsByRoot = {}
-uiData.banFilterState = {
-    rootId = nil,
-}
-uiData.cachedEquippedWeaponName = ""
 uiData.bridalGlowSelection = {
     rootKey = nil,
 }
-uiData.activeBridalGlowRootId = nil
-uiData.derivedTextEntries = nil
-uiData.derivedTextCache = {}
-
-function uiData.GetBanSummaryAlias(scopeKey)
-    return "Ui_BanSummary_" .. tostring(scopeKey)
-end
-
-function uiData.GetBanEmptyStateAlias(scopeKey)
-    return "Ui_BanEmptyState_" .. tostring(scopeKey)
-end
-
-function uiData.GetSelectedRootAlias(tabName)
-    return "SelectedRoot_" .. tostring(tabName)
-end
-
-function uiData.GetThemeColors(theme)
-    return (theme and theme.colors) or uiData.DEFAULT_THEME_COLORS
-end
-
-function uiData.DrawColoredText(ui, color, text)
-    ui.TextColored(color[1], color[2], color[3], color[4], text)
-end
 
 function uiData.GetOrdinal(n)
     local s = tostring(n)
@@ -132,24 +70,12 @@ function uiData.IsRegionMatch(group, regionValue)
     return true
 end
 
-function uiData.IsSpecialBoon(boon)
-    return boon.IsSpecial == true
-end
-
 function uiData.IsRarityEligibleBoon(boon)
     return boon.IsRarityEligible ~= false
 end
 
 function uiData.IsBridalGlowEligibleBoon(boon)
     return boon.IsBridalGlowEligible == true
-end
-
-function uiData.FormatCountLabel(banned, total)
-    return string.format("(%d/%d Banned)", banned, total)
-end
-
-function uiData.GetBanLabelStart()
-    return uiData.BAN_LABEL_START
 end
 
 function uiData.GetScopeBoons(scopeKey)
@@ -173,7 +99,7 @@ function uiData.FindBoonByKey(scopeKey, boonKey)
     end
 end
 
-function uiData.FindAnyBoonByKey(boonKey)
+local function FindAnyBoonByKey(boonKey)
     if type(boonKey) ~= "string" or boonKey == "" then
         return nil
     end
@@ -188,38 +114,14 @@ function uiData.FindAnyBoonByKey(boonKey)
     end
 end
 
-function uiData.GetForcedBoonSelection(scopeKey, packedMask)
-    local boons = uiData.GetScopeBoons(scopeKey)
-    local allowedBoon = nil
-    local banned = 0
-    local total = 0
-
-    for _, boon in ipairs(boons) do
-        total = total + 1
-        if bit32.band(packedMask or 0, boon.Mask) ~= 0 then
-            banned = banned + 1
-        else
-            allowedBoon = boon
-        end
-    end
-
-    if banned == 0 then
-        return nil, true, false
-    end
-    if total == 0 or banned ~= (total - 1) then
-        return nil, false, true
-    end
-    return allowedBoon, false, false
-end
-
-function uiData.GetForcedBoonDisplayLabel(boon)
+local function GetForcedBoonDisplayLabel(boon)
     if not boon then
         return ""
     end
     return boon.SpecialDisplayLabel or uiData.GetBoonText(boon)
 end
 
-function uiData.GetBoonMarkerColor(boon)
+local function GetBoonMarkerColor(boon)
     return type(boon) == "table" and boon.SpecialBadgeColor or nil
 end
 
@@ -236,7 +138,7 @@ function uiData.BuildPackedBanValueColors(scopeKey)
     end
 
     for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
-        local color = uiData.GetBoonMarkerColor(boon)
+        local color = GetBoonMarkerColor(boon)
         local childAlias = internal.MakeBanAlias(rootAlias, boon.Key)
         if type(childAlias) == "string" and childAlias ~= "" and type(color) == "table" then
             colors[childAlias] = color
@@ -256,15 +158,65 @@ function uiData.BuildPackedBanDisplayValues(scopeKey)
     for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
         local childAlias = internal.MakeBanAlias(rootAlias, boon.Key)
         if type(childAlias) == "string" and childAlias ~= "" then
-            displayValues[childAlias] = uiData.GetForcedBoonDisplayLabel(boon)
+            displayValues[childAlias] = GetForcedBoonDisplayLabel(boon)
         end
     end
 
     return displayValues
 end
 
-function uiData.GetRootMeta(rootKey)
-    return godMeta[rootKey]
+function uiData.GetBoonText(boon)
+    return boon.Name or boon.Key or ""
+end
+
+function uiData.GetScopeSummary(scopeKey, uiState)
+    if uiState then
+        local total = 0
+        local banned = 0
+        local currentBans = internal.GetBanConfig(scopeKey, uiState)
+        for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
+            total = total + 1
+            if bit32.band(currentBans, boon.Mask) ~= 0 then
+                banned = banned + 1
+            end
+        end
+        return banned, total
+    end
+
+    local entry = godInfo[scopeKey]
+    if entry and type(entry.banned) == "number" and type(entry.total) == "number" then
+        return entry.banned, entry.total
+    end
+
+    local total = 0
+    local banned = 0
+    local currentBans = internal.GetBanConfig(scopeKey)
+    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
+        total = total + 1
+        if bit32.band(currentBans, boon.Mask) ~= 0 then
+            banned = banned + 1
+        end
+    end
+    return banned, total
+end
+
+function uiData.GetVisibleBanCount(scopeKey, uiState)
+    if type(scopeKey) ~= "string" or scopeKey == "" then
+        return 0
+    end
+
+    local filterText = tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_TEXT_ALIAS] or ""):lower()
+    local visibleCount = 0
+
+    for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
+        local boonText = (boon.NameLower or string.lower(uiData.GetBoonText(boon)))
+        local matchesText = filterText == "" or boonText:find(filterText, 1, true) ~= nil
+        if matchesText then
+            visibleCount = visibleCount + 1
+        end
+    end
+
+    return visibleCount
 end
 
 function uiData.GetSourceColor(scopeKey)
@@ -291,90 +243,18 @@ function uiData.IsGodVisibleInGodPool(godKey, godPool)
     return godPool.isGodEnabledInPool(root)
 end
 
-function uiData.GetEquippedWeaponName()
-    if GetEquippedWeapon then
-        return GetEquippedWeapon() or ""
-    end
-    return ""
-end
-
 function uiData.GetCurrentBridalGlowTargetText(uiState)
     local selectedBoonKey = uiState and uiState.view and uiState.view.BridalGlowTargetBoon or ""
     if selectedBoonKey == nil or selectedBoonKey == "" then
         return "Current Target: Random"
     end
 
-    local boon = uiData.FindAnyBoonByKey(selectedBoonKey)
+    local boon = FindAnyBoonByKey(selectedBoonKey)
     if boon and uiData.IsBridalGlowEligibleBoon(boon) then
         return "Current Target: " .. (boon.BridalGlowLabel or uiData.GetBoonText(boon))
     end
 
     return "Current Target: Random"
-end
-
-local function BuildDerivedTextEntries()
-    local entries = {}
-    local scopeKeys = {}
-    for scopeKey, entry in pairs(internal.godInfo or {}) do
-        if type(scopeKey) == "string" and type(entry) == "table" and type(entry.boons) == "table" then
-            scopeKeys[#scopeKeys + 1] = scopeKey
-        end
-    end
-    table.sort(scopeKeys)
-
-    for _, scopeKey in ipairs(scopeKeys) do
-        entries[#entries + 1] = {
-            alias = uiData.GetBanSummaryAlias(scopeKey),
-            signature = function(uiState)
-                local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
-                return tostring(banned) .. "/" .. tostring(total)
-            end,
-            compute = function(uiState)
-                local banned, total = uiData.GetScopeSummary(scopeKey, uiState)
-                return uiData.FormatCountLabel(banned, total)
-            end,
-        }
-        entries[#entries + 1] = {
-            alias = uiData.GetBanEmptyStateAlias(scopeKey),
-            signature = function(uiState)
-                local currentBans = internal.GetBanConfig(scopeKey, uiState) or 0
-                local filterText = tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_TEXT_ALIAS] or ""):lower()
-                local filterMode = uiData.GetNormalizedBanFilterMode(uiState)
-                return tostring(currentBans) .. "|" .. filterText .. "|" .. filterMode
-            end,
-            compute = function(uiState)
-                if uiData.GetVisibleBanCount(scopeKey, uiState) == 0 then
-                    return "No boons match the current filter."
-                end
-                return ""
-            end,
-        }
-    end
-
-    entries[#entries + 1] = {
-        alias = uiData.BRIDAL_GLOW_TARGET_TEXT_ALIAS,
-        signature = function(uiState)
-            local selectedBoonKey = uiState and uiState.view and uiState.view.BridalGlowTargetBoon or ""
-            return tostring(selectedBoonKey)
-        end,
-        compute = function(uiState)
-            return uiData.GetCurrentBridalGlowTargetText(uiState)
-        end,
-    }
-
-    return entries
-end
-
-function uiData.RefreshFrameState(uiState)
-    uiData.cachedEquippedWeaponName = uiData.GetEquippedWeaponName()
-    if not uiData.derivedTextEntries then
-        uiData.derivedTextEntries = BuildDerivedTextEntries()
-    end
-    lib.special.runDerivedText(uiState, uiData.derivedTextEntries, uiData.derivedTextCache)
-end
-
-function uiData.InvalidateBridalGlowRootCache()
-    uiData.bridalGlowEligibleRoots = nil
 end
 
 function uiData.GetRootDisplayLabel(rootKey, meta)

@@ -134,12 +134,12 @@ local baseOlympians = {
 
 -- [B] WEAPONS (Auto-generates 2 Tiers)
 local baseWeapons = {
-    { key = "Staff",  display = "Staff" },
-    { key = "Dagger", display = "Blades" },
-    { key = "Axe",    display = "Axe" },
-    { key = "Torch",  display = "Torch" },
-    { key = "Lob",    display = "Skull" },
-    { key = "Suit",   display = "Coat" },
+    { key = "Staff",  color = "SpringGreen",        display = "Staff" },
+    { key = "Dagger", color = "Silver",             display = "Blades" },
+    { key = "Axe",    color = "OrangeRed",          display = "Axe" },
+    { key = "Torch",  color = "Gold",               display = "Torch" },
+    { key = "Lob",    color = "BonesActive",        display = "Skull" },
+    { key = "Suit",   color = "DeepSkyBlue",        display = "Coat" },
 }
 
 -- [C] SINGLES (NPCs & Simple Items)
@@ -288,7 +288,7 @@ for _, def in ipairs(baseWeapons) do
     RegisterGod(def.key, {
         key = def.key,
         displayTextKey = "1st " .. def.display,
-        colorKey = "NavajoWhite",
+        colorKey = def.color,
         packedConfig = { var = "Packed" .. def.key .. "1", offset = 0, bits = dynamicBits },
         lootSource = srcData,
         uiGroup = GROUP_HAMMERS,
@@ -302,7 +302,7 @@ for _, def in ipairs(baseWeapons) do
         RegisterGod(key, {
             key = key,
             displayTextKey = GetOrdinal(i) .. " " .. def.display,
-            colorKey = "NavajoWhite",
+            colorKey = def.color,
             packedConfig = { var = "Packed" .. def.key .. tostring(i), offset = 0, bits = dynamicBits },
             lootSource = srcData,
             duplicateOf = def.key,

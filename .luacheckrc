@@ -9,7 +9,7 @@ globals = {
     "chalk",
     "reload",
     "_PLUGIN",
-    "lib", "store",
+    "lib",
     "CurrentRun",
     "MetaUpgradeData",
     "LootSetData",

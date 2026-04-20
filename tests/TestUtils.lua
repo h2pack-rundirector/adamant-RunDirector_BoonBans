@@ -363,7 +363,7 @@ function ResetBoonBansUiHarness(opts)
         dofile("src/" .. path)
     end
 
-    dofile("src/mods/ui/ui_lean.lua")
+    dofile("src/mods/ui.lua")
 
     for godKey, _ in pairs(internal.godInfo) do
         internal.UpdateGodStats(godKey)

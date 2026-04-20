@@ -17,32 +17,6 @@ local PACK_ID = "run-director"
 RunDirectorBoonBans_Internal = RunDirectorBoonBans_Internal or {}
 local internal = RunDirectorBoonBans_Internal
 
-local function BuildPackedStorageNode(item)
-    local bits = internal.GetPackedStorageBits(item.key)
-    if not bits then
-        return {
-            type = "int",
-            alias = item.key,
-            configKey = item.key,
-        }
-    end
-
-    local packedWidth = nil
-    local lastBit = bits[#bits]
-    if lastBit then
-        packedWidth = lastBit.offset + lastBit.width
-    end
-
-    return {
-        type = "packedInt",
-        alias = item.key,
-        configKey = item.key,
-        default = item.default,
-        width = packedWidth,
-        bits = bits,
-    }
-end
-
 public.definition = {
     modpack = PACK_ID,
     id = "BoonBans",
@@ -53,71 +27,35 @@ public.definition = {
 }
 internal.definition = public.definition
 
-public.definition.storage = {}
-
-local function BuildDefinitionStorage()
-    public.definition.storage = {
-        { type = "bool",   alias = "EnablePadding",                   configKey = "EnablePadding" },
-        { type = "int",    alias = "Padding_PrioritizeCoreForFirstN", configKey = "Padding_PrioritizeCoreForFirstN", min = 0,     max = 15 },
-        { type = "bool",   alias = "Padding_AvoidFutureAllowed",      configKey = "Padding_AvoidFutureAllowed" },
-        { type = "bool",   alias = "Padding_AllowDuos",               configKey = "Padding_AllowDuos" },
-        { type = "int",    alias = "ImproveFirstNBoonRarity",         configKey = "ImproveFirstNBoonRarity",         min = 0,     max = 15 },
-        { type = "string", alias = "BridalGlowTargetBoon",            configKey = "BridalGlowTargetBoon",            maxLen = 128 },
-        { type = "int",    alias = "NpcViewRegion",                   lifetime = "transient",                         default = 4, min = 1, max = 4 },
-        { type = "string", alias = "BanFilterText",                   lifetime = "transient",                         default = "", maxLen = 128 },
-        { type = "string", alias = "SelectedRoot_Olympians",          lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_Other Gods",         lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_Hammers",            lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_NPCs",               lifetime = "transient",                         default = "", maxLen = 64 },
-    }
-
-    local packedKeys = {}
-    for key, value in pairs(config) do
-        if type(key) == "string" and key:find("^Packed") then
-            table.insert(packedKeys, { key = key, default = value })
-        end
-    end
-    table.sort(packedKeys, function(a, b)
-        return a.key < b.key
-    end)
-    for _, item in ipairs(packedKeys) do
-        table.insert(public.definition.storage, BuildPackedStorageNode(item))
-    end
-end
-
 public.host = nil
-store = nil
-internal.session = nil
+local store
+local session
 internal.standaloneUi = nil
 
-local function RebuildStore()
-    BuildDefinitionStorage()
-    store, internal.session = lib.createStore(config, public.definition, dataDefaults)
-end
-
 local function SyncPublicExports()
-end
-
-local function registerHooks()
-    bit32 = require("bit32")
-    import("mods/utilities.lua")
-    import("mods/runtime_state.lua")
-    import("mods/npc_logic.lua")
-    import("mods/loot_logic.lua")
-    import("mods/ui/ui_lean.lua")
-    SyncPublicExports()
 end
 
 local function init()
     import_as_fallback(rom.game)
     import("mods/god_meta.lua")
     import("mods/boon_catalog.lua")
-    RebuildStore()
-    registerHooks()
+    import("mods/data.lua")
+    import("mods/logic.lua")
+    import("mods/ui.lua")
+
+    internal.BuildDefinitionStorage(config)
+    store, session = lib.createStore(config, public.definition, dataDefaults)
+    internal.store = store
+
+    SyncPublicExports()
+    if internal.RegisterHooks then
+        internal.RegisterHooks()
+    end
+
     public.host = lib.createModuleHost({
         definition = public.definition,
         store = store,
-        session = internal.session,
+        session = session,
         drawTab = internal.DrawTab,
         drawQuickContent = internal.DrawQuickContent,
     })

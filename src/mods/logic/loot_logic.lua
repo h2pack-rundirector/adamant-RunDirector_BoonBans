@@ -14,7 +14,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 local isKeepsakeOffering = false
@@ -52,10 +52,10 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         end
     end
 
-    if store.read("EnablePadding") and #banned > 0 then
+    if internal.store.read("EnablePadding") and #banned > 0 then
         -- Prioritize core boons (PriorityUpgrades) in padding for the first N god boons.
         -- After N boons have been picked, padding is a flat shuffle.
-        local prioritizeN = store.read("Padding_PrioritizeCoreForFirstN") or 0
+        local prioritizeN = internal.store.read("Padding_PrioritizeCoreForFirstN") or 0
         local usePriority = (not isHammer) and (prioritizeN > 0) and (godBoonCount < prioritizeN)
 
         local prioritySet = {}
@@ -88,8 +88,8 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         for _, item in ipairs(highPrioPool) do table.insert(finalPool, item) end
         for _, item in ipairs(lowPrioPool) do table.insert(finalPool, item) end
 
-        local avoidFuture = (store.read("Padding_AvoidFutureAllowed") ~= false)
-        local allowDuos = (store.read("Padding_AllowDuos") == true)
+        local avoidFuture = (internal.store.read("Padding_AvoidFutureAllowed") ~= false)
+        local allowDuos = (internal.store.read("Padding_AllowDuos") == true)
 
         for _, pending in ipairs(finalPool) do
             local skipPadding = false
@@ -129,7 +129,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
         end
     end
 
-    if store.read("DebugMode") and #queue > 0 then
+    if internal.store.read("DebugMode") and #queue > 0 then
         Log("[Micro] PriorityQueue generated. Items: %d", #queue)
     end
 
@@ -205,7 +205,7 @@ modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, loot
         godBoonCount
     )
 
-    if store.read("DebugMode") then
+    if internal.store.read("DebugMode") then
         Log("Generated Priority Queue:")
         for i, queued in ipairs(queue) do
             Log("  %d. %s (Rarity: %s)", i, queued.ItemName, tostring(queued.rarity))
@@ -396,7 +396,7 @@ modutil.mod.Path.Wrap("GiveRandomHadesBoonAndBoostBoons", function(base, args)
 end)
 
 modutil.mod.Path.Wrap("HeraSuperchargeBoon", function(base, args, origTraitData, contextArgs)
-    local targetBoon = store.read("BridalGlowTargetBoon")
+    local targetBoon = internal.store.read("BridalGlowTargetBoon")
     if not targetBoon or targetBoon == "" then
         base(args, origTraitData, contextArgs)
         return

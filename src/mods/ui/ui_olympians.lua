@@ -77,7 +77,7 @@ local function DrawForceRow(ui, session, scope)
     ui.Text(scope.label)
     ui.SameLine()
     ui.SetCursorPosX(80)
-    lib.widgets.packedDropdown(ui, session, bindAlias, store, {
+    lib.widgets.packedDropdown(ui, session, bindAlias, internal.store, {
         label = "",
         selectionMode = "singleRemaining",
         noneLabel = "None",

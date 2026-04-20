@@ -4,7 +4,8 @@ local internal = RunDirectorBoonBans_Internal
 
 local function Log(fmt, ...)
     local definitionId = internal.definition and internal.definition.id or "BoonBans"
-    local debugEnabled = store and store.read("DebugMode") == true or false
+    local activeStore = internal.store
+    local debugEnabled = activeStore and activeStore.read("DebugMode") == true or false
     lib.logging.logIf(definitionId, debugEnabled, fmt, ...)
 end
 
@@ -120,15 +121,15 @@ end
 
 -- [A] OLYMPIANS (Auto-generates 4 Tiers)
 local baseOlympians = {
-    { name = "Aphrodite",  color = "AphroditeDamage" },
-    { name = "Apollo",     color = "ApolloDamageLight" },
-    { name = "Ares",       color = "AresDamageLight" },
-    { name = "Demeter",    color = "DemeterDamage" },
-    { name = "Hephaestus", color = "HephaestusDamage" },
+    { name = "Aphrodite",  color = "AphroditeVoice" },
+    { name = "Apollo",     color = "ApolloVoice" },
+    { name = "Ares",       color = "AresVoice" },
+    { name = "Demeter",    color = "DemeterVoice" },
+    { name = "Hephaestus", color = "HephaestusVoice" },
     { name = "Hera",       color = "HeraDamage" },
-    { name = "Hestia",     color = "HestiaDamageLight" },
-    { name = "Poseidon",   color = "PoseidonDamage" },
-    { name = "Zeus",       color = "ZeusDamageLight" },
+    { name = "Hestia",     color = "HestiaVoice" },
+    { name = "Poseidon",   color = "PoseidonVoice" },
+    { name = "Zeus",       color = "ZeusVoice" },
     { name = "Hermes",     color = "HermesVoice",      group = GROUP_BONUS, tiers = MAX_HERMES_TIERS }
 }
 

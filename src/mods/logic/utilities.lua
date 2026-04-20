@@ -6,14 +6,14 @@ local godInfo = internal.godInfo
 local band, lshift, rshift, bor, bnot = bit32.band, bit32.lshift, bit32.rshift, bit32.bor, bit32.bnot
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 local function ReadValue(key, session)
     if session then
         return session.read(key)
     end
-    return store.read(key)
+    return internal.store.read(key)
 end
 
 local function WriteValue(key, value, session)
@@ -51,7 +51,7 @@ function internal.GetRunState()
     if not CurrentRun.RunDirector_BoonBans_State then
         CurrentRun.RunDirector_BoonBans_State = {
             BoonPickCounts = {},
-            ImproveFirstNBoonRarity = store.read("ImproveFirstNBoonRarity") or 0,
+            ImproveFirstNBoonRarity = internal.store.read("ImproveFirstNBoonRarity") or 0,
         }
     end
     return CurrentRun.RunDirector_BoonBans_State

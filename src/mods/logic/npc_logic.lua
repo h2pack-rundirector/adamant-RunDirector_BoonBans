@@ -16,7 +16,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
@@ -112,7 +112,7 @@ local function wrapNPCChoice(funcName)
                 end
             end
 
-            if #allowed > 0 and (store.read("EnablePadding") or funcName == "CirceBlessingChoice") then
+            if #allowed > 0 and (internal.store.read("EnablePadding") or funcName == "CirceBlessingChoice") then
                 if #allowed < GetTotalLootChoices() then
                     local pool = {}
                     for _, bannedOption in ipairs(banned) do
@@ -177,7 +177,7 @@ modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
 
     if #allowed == 0 then return eligible end
 
-    if #allowed < GetTotalLootChoices() and store.read("EnablePadding") then
+    if #allowed < GetTotalLootChoices() and internal.store.read("EnablePadding") then
         local pool = { table.unpack(banned) }
         local seen = {}
         for _, allowedSpell in ipairs(allowed) do

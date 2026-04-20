@@ -9,13 +9,13 @@ import("mods/ui/ui_hammers.lua")
 import("mods/ui/ui_npcs.lua")
 import("mods/ui/ui_other_gods.lua")
 
-function internal.DrawBanSearchControls(ui, uiState, idSuffix)
+function internal.DrawBanSearchControls(ui, session, idSuffix)
     idSuffix = tostring(idSuffix or "")
 
     ui.AlignTextToFramePadding()
     ui.Text("Filter:")
     ui.SameLine()
-    lib.widgets.inputText(ui, uiState, uiData.BAN_FILTER_TEXT_ALIAS, {
+    lib.widgets.inputText(ui, session, uiData.BAN_FILTER_TEXT_ALIAS, {
         label = "",
         controlWidth = 180,
     })
@@ -23,57 +23,57 @@ function internal.DrawBanSearchControls(ui, uiState, idSuffix)
     lib.widgets.button(ui, "Clear", {
         id = "boon_bans_filter_clear_" .. idSuffix,
         onClick = function()
-            uiState.reset(uiData.BAN_FILTER_TEXT_ALIAS)
+            session.reset(uiData.BAN_FILTER_TEXT_ALIAS)
         end,
     })
 end
 
-function internal.DrawFilteredPackedBanList(ui, uiState, scopeKey, opts)
+function internal.DrawFilteredPackedBanList(ui, session, scopeKey, opts)
     opts = opts or {}
-    local filterText = tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_TEXT_ALIAS] or "")
+    local filterText = tostring(session and session.view and session.view[uiData.BAN_FILTER_TEXT_ALIAS] or "")
 
-    lib.widgets.packedCheckboxList(ui, uiState, internal.GetBanRootAlias(scopeKey), store, {
+    lib.widgets.packedCheckboxList(ui, session, internal.GetBanRootAlias(scopeKey), store, {
         valueColors = opts.valueColors or uiData.BuildPackedBanValueColors(scopeKey),
         slotCount = opts.slotCount or #(uiData.GetScopeBoons(scopeKey) or uiData.EMPTY_LIST),
         filterText = filterText,
     })
 
-    if uiData.GetVisibleBanCount(scopeKey, uiState) == 0 then
+    if uiData.GetVisibleBanCount(scopeKey, session) == 0 then
         lib.widgets.text(ui, "No boons match the current filter.", {
             color = uiData.MUTED_TEXT_COLOR,
         })
     end
 end
 
-function internal.ResetAllControls(uiState)
-    local bansChanged = internal.ResetAllBans(uiState)
-    internal.ResetAllRarity(uiState)
+function internal.ResetAllControls(session)
+    local bansChanged = internal.ResetAllBans(session)
+    internal.ResetAllRarity(session)
     if bansChanged then
-        internal.RecalculateBannedCounts(uiState)
+        internal.RecalculateBannedCounts(session)
     end
 end
 
-local function DrawSettingsTab(ui, uiState)
-    lib.widgets.checkbox(ui, uiState, "EnablePadding", {
+local function DrawSettingsTab(ui, session)
+    lib.widgets.checkbox(ui, session, "EnablePadding", {
         label = "Enable Padding",
     })
 
-    if uiState.view.EnablePadding == true then
-        lib.widgets.dropdown(ui, uiState, "Padding_PrioritizeCoreForFirstN", {
+    if session.view.EnablePadding == true then
+        lib.widgets.dropdown(ui, session, "Padding_PrioritizeCoreForFirstN", {
             label = "Prioritize Core Boons for First Picks",
             values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 },
             controlWidth = 60,
         })
-        lib.widgets.checkbox(ui, uiState, "Padding_AvoidFutureAllowed", {
+        lib.widgets.checkbox(ui, session, "Padding_AvoidFutureAllowed", {
             label = "Avoid 'Future Allowed' Items",
         })
-        lib.widgets.checkbox(ui, uiState, "Padding_AllowDuos", {
+        lib.widgets.checkbox(ui, session, "Padding_AllowDuos", {
             label = "Allow Banned Duos/Legendaries",
         })
     end
 
     ui.Spacing()
-    lib.widgets.dropdown(ui, uiState, "ImproveFirstNBoonRarity", {
+    lib.widgets.dropdown(ui, session, "ImproveFirstNBoonRarity", {
         label = "Force First N Boons to Be Epic",
         values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
         controlWidth = 60,
@@ -83,47 +83,47 @@ local function DrawSettingsTab(ui, uiState)
     lib.widgets.confirmButton(ui, "boon_bans_reset_all_bans", "RESET ALL BANS (Global)", {
         confirmLabel = "Confirm RESET ALL BANS",
         onConfirm = function()
-            local bansChanged = internal.ResetAllBans(uiState)
+            local bansChanged = internal.ResetAllBans(session)
             if bansChanged then
-                internal.RecalculateBannedCounts(uiState)
+                internal.RecalculateBannedCounts(session)
             end
         end,
     })
     lib.widgets.confirmButton(ui, "boon_bans_reset_all_rarity", "RESET ALL RARITY (Global)", {
         confirmLabel = "Confirm RESET ALL RARITY",
         onConfirm = function()
-            internal.ResetAllRarity(uiState)
+            internal.ResetAllRarity(session)
         end,
     })
 end
 
-function internal.DrawTab(ui, uiState)
+function internal.DrawTab(ui, session)
     if not ui.BeginTabBar("BoonBansLeanTabs") then
         return false
     end
 
     if ui.BeginTabItem("Olympians") then
-        internal.DrawOlympiansTab(ui, uiState)
+        internal.DrawOlympiansTab(ui, session)
         ui.EndTabItem()
     end
 
     if ui.BeginTabItem("Other Gods") then
-        internal.DrawOtherGodsTab(ui, uiState)
+        internal.DrawOtherGodsTab(ui, session)
         ui.EndTabItem()
     end
 
     if ui.BeginTabItem("Hammers") then
-        internal.DrawHammersTab(ui, uiState)
+        internal.DrawHammersTab(ui, session)
         ui.EndTabItem()
     end
 
     if ui.BeginTabItem("NPCs") then
-        internal.DrawNpcsTab(ui, uiState)
+        internal.DrawNpcsTab(ui, session)
         ui.EndTabItem()
     end
 
     if ui.BeginTabItem("Settings") then
-        DrawSettingsTab(ui, uiState)
+        DrawSettingsTab(ui, session)
         ui.EndTabItem()
     end
 
@@ -131,15 +131,15 @@ function internal.DrawTab(ui, uiState)
     return false
 end
 
-function internal.DrawQuickContent(ui, uiState)
-    lib.widgets.checkbox(ui, uiState, "EnablePadding", {
+function internal.DrawQuickContent(ui, session)
+    lib.widgets.checkbox(ui, session, "EnablePadding", {
         label = "Padding Enabled",
     })
 
     lib.widgets.confirmButton(ui, "boon_bans_quick_reset_all", "Reset To Default", {
         confirmLabel = "Confirm Reset All",
         onConfirm = function()
-            internal.ResetAllControls(uiState)
+            internal.ResetAllControls(session)
         end,
     })
 end

@@ -25,13 +25,13 @@ internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeNpcRoot = internal.uiLeanState.activeNpcRoot or "Arachne"
 internal.uiLeanState.activeNpcViewByRoot = internal.uiLeanState.activeNpcViewByRoot or {}
 
-local function IsRootCustomized(root, uiState)
-    local banned = uiData.GetScopeSummary(root.primaryScopeKey, uiState)
+local function IsRootCustomized(root, session)
+    local banned = uiData.GetScopeSummary(root.primaryScopeKey, session)
     return banned > 0
 end
 
-local function GetVisibleNpcRoots(uiState)
-    local regionValue = uiState and uiState.view and uiState.view[uiData.NPC_VIEW_REGION_ALIAS] or 4
+local function GetVisibleNpcRoots(session)
+    local regionValue = session and session.view and session.view[uiData.NPC_VIEW_REGION_ALIAS] or 4
     local roots = {}
     for _, root in ipairs(NPC_ROOTS) do
         if uiData.IsRegionMatch(root.group, regionValue) then
@@ -41,9 +41,9 @@ local function GetVisibleNpcRoots(uiState)
     return roots
 end
 
-local function GetNavLabel(root, uiState)
+local function GetNavLabel(root, session)
     local label = root.label
-    if IsRootCustomized(root, uiState) then
+    if IsRootCustomized(root, session) then
         label = label .. " *"
     end
     return label
@@ -58,7 +58,7 @@ local function GetActiveRoot(visibleRoots)
     return visibleRoots[1]
 end
 
-local function DrawRegionFilter(ui, uiState)
+local function DrawRegionFilter(ui, session)
     local displayValues = {}
     local values = {}
     for _, option in ipairs(uiData.NPC_REGION_OPTIONS) do
@@ -69,7 +69,7 @@ local function DrawRegionFilter(ui, uiState)
     ui.AlignTextToFramePadding()
     ui.Text("Filter NPC Sources:")
     ui.SameLine()
-    lib.widgets.radio(ui, uiState, uiData.NPC_VIEW_REGION_ALIAS, {
+    lib.widgets.radio(ui, session, uiData.NPC_VIEW_REGION_ALIAS, {
         label = "",
         values = values,
         displayValues = displayValues,
@@ -77,30 +77,30 @@ local function DrawRegionFilter(ui, uiState)
     })
 end
 
-local function DrawBanPanel(ui, uiState, root)
-    internal.DrawBanSearchControls(ui, uiState, root.primaryScopeKey)
+local function DrawBanPanel(ui, session, root)
+    internal.DrawBanSearchControls(ui, session, root.primaryScopeKey)
     ui.SameLine()
     ui.SetCursorPosX(ui.GetCursorPosX() + 100)
 
     lib.widgets.button(ui, "Ban All", {
         id = "npcs_ban_all_" .. root.primaryScopeKey,
         onClick = function()
-            internal.BanAllGodBans(root.primaryScopeKey, uiState)
+            internal.BanAllGodBans(root.primaryScopeKey, session)
         end,
     })
     ui.SameLine()
     lib.widgets.button(ui, "Reset", {
         id = "npcs_reset_" .. root.primaryScopeKey,
         onClick = function()
-            internal.ResetGodBans(root.primaryScopeKey, uiState)
+            internal.ResetGodBans(root.primaryScopeKey, session)
         end,
     })
 
     lib.widgets.separator(ui)
-    internal.DrawFilteredPackedBanList(ui, uiState, root.primaryScopeKey)
+    internal.DrawFilteredPackedBanList(ui, session, root.primaryScopeKey)
 end
 
-local function DrawRarityPanel(ui, uiState, root)
+local function DrawRarityPanel(ui, session, root)
     for _, boon in ipairs(uiData.GetScopeBoons(root.primaryScopeKey)) do
         if uiData.IsRarityEligibleBoon(boon) then
             local rarityAlias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key)
@@ -109,7 +109,7 @@ local function DrawRarityPanel(ui, uiState, root)
                 ui.Text(uiData.GetBoonText(boon))
                 ui.SameLine()
                 ui.SetCursorPosX(220)
-                lib.widgets.dropdown(ui, uiState, rarityAlias, {
+                lib.widgets.dropdown(ui, session, rarityAlias, {
                     label = "",
                     values = { 0, 1, 2, 3 },
                     displayValues = uiData.RARITY_LABELS,
@@ -121,11 +121,11 @@ local function DrawRarityPanel(ui, uiState, root)
     end
 end
 
-function internal.DrawNpcsTab(ui, uiState)
-    DrawRegionFilter(ui, uiState)
+function internal.DrawNpcsTab(ui, session)
+    DrawRegionFilter(ui, session)
     ui.Spacing()
 
-    local visibleRoots = GetVisibleNpcRoots(uiState)
+    local visibleRoots = GetVisibleNpcRoots(session)
     if #visibleRoots == 0 then
         lib.widgets.text(ui, "No NPC sources match the current filter.", {
             color = uiData.MUTED_TEXT_COLOR,
@@ -137,7 +137,7 @@ function internal.DrawNpcsTab(ui, uiState)
     for _, root in ipairs(visibleRoots) do
         tabs[#tabs + 1] = {
             key = root.id,
-            label = GetNavLabel(root, uiState),
+            label = GetNavLabel(root, session),
             color = uiData.GetSourceColor(root.primaryScopeKey),
             group = root.group,
         }
@@ -156,12 +156,12 @@ function internal.DrawNpcsTab(ui, uiState)
     if ui.BeginTabBar("BoonBansNpcsViews##" .. root.id) then
         if ui.BeginTabItem("Bans") then
             internal.uiLeanState.activeNpcViewByRoot[root.id] = "bans"
-            DrawBanPanel(ui, uiState, root)
+            DrawBanPanel(ui, session, root)
             ui.EndTabItem()
         end
         if root.hasRarity and ui.BeginTabItem("Rarity") then
             internal.uiLeanState.activeNpcViewByRoot[root.id] = "rarity"
-            DrawRarityPanel(ui, uiState, root)
+            DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end
         ui.EndTabBar()

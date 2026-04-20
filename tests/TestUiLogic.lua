@@ -26,9 +26,9 @@ function TestUiShared:testBuildPackedBanValueColorsIncludesOnlySpecialBoons()
     lu.assertEquals(colors.PackedApollo_Infusion_Ban, { 1.0, 0.29, 1.0, 1.0 })
 end
 
-function TestUiShared:testGetScopeSummaryUsesStagedUiStateWhenProvided()
-    local uiState = {
-        get = function(key)
+function TestUiShared:testGetScopeSummaryUsesStagedSessionWhenProvided()
+    local session = {
+        read = function(key)
             if key == "PackedApollo" then
                 return 9
             end
@@ -36,34 +36,34 @@ function TestUiShared:testGetScopeSummaryUsesStagedUiStateWhenProvided()
         end,
     }
 
-    local banned, total = self.ui.GetScopeSummary("Apollo", uiState)
+    local banned, total = self.ui.GetScopeSummary("Apollo", session)
 
     lu.assertEquals(banned, 2)
     lu.assertEquals(total, 5)
 end
 
 function TestUiShared:testGetVisibleBanCountUsesTextFilterOnly()
-    local uiState = {
+    local session = {
         view = {
             BanFilterText = "cast",
         },
     }
 
-    lu.assertEquals(self.ui.GetVisibleBanCount("Apollo", uiState), 1)
-    lu.assertEquals(self.ui.GetVisibleBanCount("Circe", uiState), 0)
+    lu.assertEquals(self.ui.GetVisibleBanCount("Apollo", session), 1)
+    lu.assertEquals(self.ui.GetVisibleBanCount("Circe", session), 0)
 end
 
 function TestUiShared:testGetCurrentBridalGlowTargetTextUsesEligibleBoon()
-    local uiState = {
+    local session = {
         view = {
             BridalGlowTargetBoon = "Hex",
         },
     }
 
-    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(uiState), "Current Target: Random")
+    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(session), "Current Target: Random")
 
     self.internal.godInfo.Circe.boonByKey.Hex.IsBridalGlowEligible = true
-    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(uiState), "Current Target: Hex")
+    lu.assertEquals(self.ui.GetCurrentBridalGlowTargetText(session), "Current Target: Hex")
 end
 
 function TestUiShared:testGetRootDisplayLabelDropsTierPrefixForTieredRoots()

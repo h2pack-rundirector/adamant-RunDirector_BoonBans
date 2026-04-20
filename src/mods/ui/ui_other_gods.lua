@@ -90,9 +90,9 @@ internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeOtherGodRoot = internal.uiLeanState.activeOtherGodRoot or "Hermes"
 internal.uiLeanState.activeOtherGodViewByRoot = internal.uiLeanState.activeOtherGodViewByRoot or {}
 
-local function IsRootCustomized(root, uiState)
+local function IsRootCustomized(root, session)
     for _, scope in ipairs(root.scopes) do
-        local banned = uiData.GetScopeSummary(scope.key, uiState)
+        local banned = uiData.GetScopeSummary(scope.key, session)
         if banned > 0 then
             return true
         end
@@ -100,9 +100,9 @@ local function IsRootCustomized(root, uiState)
     return false
 end
 
-local function GetNavLabel(root, uiState)
+local function GetNavLabel(root, session)
     local label = root.label
-    if IsRootCustomized(root, uiState) then
+    if IsRootCustomized(root, session) then
         label = label .. " *"
     end
     return label
@@ -117,7 +117,7 @@ local function GetActiveRoot()
     return OTHER_GOD_ROOTS[1]
 end
 
-local function DrawForceRow(ui, uiState, scope)
+local function DrawForceRow(ui, session, scope)
     local bindAlias = internal.GetBanRootAlias(scope.key)
     if not bindAlias then
         return
@@ -127,7 +127,7 @@ local function DrawForceRow(ui, uiState, scope)
     ui.Text(scope.label == "Bans" and "Force 1" or scope.label)
     ui.SameLine()
     ui.SetCursorPosX(80)
-    lib.widgets.packedDropdown(ui, uiState, bindAlias, store, {
+    lib.widgets.packedDropdown(ui, session, bindAlias, store, {
         label = "",
         selectionMode = "singleRemaining",
         noneLabel = "None",
@@ -138,38 +138,38 @@ local function DrawForceRow(ui, uiState, scope)
     })
 end
 
-local function DrawForcePanel(ui, uiState, root)
+local function DrawForcePanel(ui, session, root)
     lib.widgets.text(ui, "Force")
     lib.widgets.separator(ui)
     for _, scope in ipairs(root.scopes) do
-        DrawForceRow(ui, uiState, scope)
+        DrawForceRow(ui, session, scope)
     end
 end
 
-local function DrawBanPanel(ui, uiState, _, scope)
-    internal.DrawBanSearchControls(ui, uiState, scope.key)
+local function DrawBanPanel(ui, session, _, scope)
+    internal.DrawBanSearchControls(ui, session, scope.key)
     ui.SameLine()
     ui.SetCursorPosX(ui.GetCursorPosX() + 100)
 
     lib.widgets.button(ui, "Ban All", {
         id = "other_gods_ban_all_" .. scope.key,
         onClick = function()
-            internal.BanAllGodBans(scope.key, uiState)
+            internal.BanAllGodBans(scope.key, session)
         end,
     })
     ui.SameLine()
     lib.widgets.button(ui, "Reset", {
         id = "other_gods_reset_" .. scope.key,
         onClick = function()
-            internal.ResetGodBans(scope.key, uiState)
+            internal.ResetGodBans(scope.key, session)
         end,
     })
 
     lib.widgets.separator(ui)
-    internal.DrawFilteredPackedBanList(ui, uiState, scope.key)
+    internal.DrawFilteredPackedBanList(ui, session, scope.key)
 end
 
-local function DrawRarityPanel(ui, uiState, root)
+local function DrawRarityPanel(ui, session, root)
     for _, boon in ipairs(uiData.GetScopeBoons(root.primaryScopeKey)) do
         if uiData.IsRarityEligibleBoon(boon) then
             local rarityAlias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key)
@@ -178,7 +178,7 @@ local function DrawRarityPanel(ui, uiState, root)
                 ui.Text(uiData.GetBoonText(boon))
                 ui.SameLine()
                 ui.SetCursorPosX(220)
-                lib.widgets.dropdown(ui, uiState, rarityAlias, {
+                lib.widgets.dropdown(ui, session, rarityAlias, {
                     label = "",
                     values = { 0, 1, 2, 3 },
                     displayValues = uiData.RARITY_LABELS,
@@ -190,12 +190,12 @@ local function DrawRarityPanel(ui, uiState, root)
     end
 end
 
-function internal.DrawOtherGodsTab(ui, uiState)
+function internal.DrawOtherGodsTab(ui, session)
     local tabs = {}
     for _, root in ipairs(OTHER_GOD_ROOTS) do
         tabs[#tabs + 1] = {
             key = root.id,
-            label = GetNavLabel(root, uiState),
+            label = GetNavLabel(root, session),
             color = uiData.GetSourceColor(root.primaryScopeKey),
         }
     end
@@ -213,19 +213,19 @@ function internal.DrawOtherGodsTab(ui, uiState)
     if ui.BeginTabBar("BoonBansOtherGodsViews##" .. root.id) then
         if #root.scopes > 1 and ui.BeginTabItem("Force") then
             internal.uiLeanState.activeOtherGodViewByRoot[root.id] = "force"
-            DrawForcePanel(ui, uiState, root)
+            DrawForcePanel(ui, session, root)
             ui.EndTabItem()
         end
         for _, scope in ipairs(root.scopes) do
             if ui.BeginTabItem(scope.label) then
                 internal.uiLeanState.activeOtherGodViewByRoot[root.id] = scope.key
-                DrawBanPanel(ui, uiState, root, scope)
+                DrawBanPanel(ui, session, root, scope)
                 ui.EndTabItem()
             end
         end
         if root.hasRarity and ui.BeginTabItem("Rarity") then
             internal.uiLeanState.activeOtherGodViewByRoot[root.id] = "rarity"
-            DrawRarityPanel(ui, uiState, root)
+            DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end
         ui.EndTabBar()

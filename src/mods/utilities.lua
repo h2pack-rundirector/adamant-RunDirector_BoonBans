@@ -9,39 +9,39 @@ local function Log(fmt, ...)
     lib.logging.logIf(internal.definition.id, store.read("DebugMode") == true, fmt, ...)
 end
 
-local function ReadValue(key, uiState)
-    if uiState then
-        return uiState.get(key)
+local function ReadValue(key, session)
+    if session then
+        return session.read(key)
     end
     return store.read(key)
 end
 
-local function WriteValue(key, value, uiState)
-    if not uiState then
-        error("Boon Bans state writes require uiState", 0)
+local function WriteValue(key, value, session)
+    if not session then
+        error("Boon Bans state writes require session", 0)
     end
-    uiState.set(key, value)
+    session.write(key, value)
 end
 
-function internal.SetBanConfig(godKey, value, uiState)
+function internal.SetBanConfig(godKey, value, session)
     local meta = godMeta[godKey]
     if not meta or not meta.packedConfig then return false end
 
     local mask = lshift(1, meta.packedConfig.bits) - 1
     local nextValue = band(value or 0, mask)
-    local currentValue = ReadValue(meta.packedConfig.var, uiState) or 0
+    local currentValue = ReadValue(meta.packedConfig.var, session) or 0
     if currentValue == nextValue then
         return false
     end
-    WriteValue(meta.packedConfig.var, nextValue, uiState)
+    WriteValue(meta.packedConfig.var, nextValue, session)
     return true
 end
 
-function internal.GetBanConfig(godKey, uiState)
+function internal.GetBanConfig(godKey, session)
     local meta = godMeta[godKey]
     if not meta or not meta.packedConfig then return 0 end
 
-    local val = ReadValue(meta.packedConfig.var, uiState) or 0
+    local val = ReadValue(meta.packedConfig.var, session) or 0
     local mask = lshift(1, meta.packedConfig.bits) - 1
     return band(val, mask)
 end
@@ -57,20 +57,20 @@ function internal.GetRunState()
     return CurrentRun.RunDirector_BoonBans_State
 end
 
-function internal.GetRarityValue(godKey, bitIndex, uiState)
+function internal.GetRarityValue(godKey, bitIndex, session)
     local meta = godMeta[godKey]
     if not meta or not meta.rarityVar then return 0 end
 
-    local packedVal = ReadValue(meta.rarityVar, uiState) or 0
+    local packedVal = ReadValue(meta.rarityVar, session) or 0
     local shift = bitIndex * 2
     return band(rshift(packedVal, shift), 3)
 end
 
-function internal.SetRarityValue(godKey, bitIndex, newVal, uiState)
+function internal.SetRarityValue(godKey, bitIndex, newVal, session)
     local meta = godMeta[godKey]
     if not meta or not meta.rarityVar then return false end
 
-    local current = ReadValue(meta.rarityVar, uiState) or 0
+    local current = ReadValue(meta.rarityVar, session) or 0
     local shift = bitIndex * 2
     local clearMask = bnot(lshift(3, shift))
     local cleared = band(current, clearMask)
@@ -78,18 +78,18 @@ function internal.SetRarityValue(godKey, bitIndex, newVal, uiState)
     if nextValue == current then
         return false
     end
-    WriteValue(meta.rarityVar, nextValue, uiState)
+    WriteValue(meta.rarityVar, nextValue, session)
     return true
 end
 
-function internal.ResetAllRarity(uiState)
+function internal.ResetAllRarity(session)
     local cleared = {}
     local changed = false
     for _, meta in pairs(godMeta) do
         if meta.rarityVar and not cleared[meta.rarityVar] then
-            local current = ReadValue(meta.rarityVar, uiState) or 0
+            local current = ReadValue(meta.rarityVar, session) or 0
             if current ~= 0 then
-                WriteValue(meta.rarityVar, 0, uiState)
+                WriteValue(meta.rarityVar, 0, session)
                 changed = true
             end
             cleared[meta.rarityVar] = true
@@ -98,11 +98,11 @@ function internal.ResetAllRarity(uiState)
     return changed
 end
 
-function internal.UpdateGodStats(godKey, uiState)
+function internal.UpdateGodStats(godKey, session)
     local entry = godInfo[godKey]
     if not entry or not entry.boons then return false end
 
-    local godConfig = internal.GetBanConfig(godKey, uiState)
+    local godConfig = internal.GetBanConfig(godKey, session)
     local count = 0
     for _, boon in ipairs(entry.boons) do
         if band(godConfig, boon.Mask) ~= 0 then
@@ -126,23 +126,23 @@ function internal.GetTotalBansConfigured()
     return totalBans
 end
 
-function internal.SetBridalGlowTargetBoonKey(boonKey, uiState)
-    if not uiState then
-        error("Bridal Glow target writes require uiState", 0)
+function internal.SetBridalGlowTargetBoonKey(boonKey, session)
+    if not session then
+        error("Bridal Glow target writes require session", 0)
     end
 
     local nextValue = boonKey or ""
-    local currentValue = ReadValue("BridalGlowTargetBoon", uiState) or ""
+    local currentValue = ReadValue("BridalGlowTargetBoon", session) or ""
     if currentValue == nextValue then
         return false
     end
-    uiState.set("BridalGlowTargetBoon", nextValue)
+    session.write("BridalGlowTargetBoon", nextValue)
     return true
 end
 
-function internal.ResetGodBans(god, uiState)
+function internal.ResetGodBans(god, session)
     if godMeta[god] and godInfo[god] then
-        local changed = internal.SetBanConfig(god, 0, uiState)
+        local changed = internal.SetBanConfig(god, 0, session)
         if not changed then
             return false
         end
@@ -154,11 +154,11 @@ function internal.ResetGodBans(god, uiState)
     return false
 end
 
-function internal.BanAllGodBans(god, uiState)
+function internal.BanAllGodBans(god, session)
     local meta = godMeta[god]
     if meta and meta.packedConfig and godInfo[god] then
         local mask = lshift(1, meta.packedConfig.bits) - 1
-        local changed = internal.SetBanConfig(god, mask, uiState)
+        local changed = internal.SetBanConfig(god, mask, session)
         if not changed then
             return false
         end
@@ -170,10 +170,10 @@ function internal.BanAllGodBans(god, uiState)
     return false
 end
 
-function internal.ResetAllBans(uiState)
+function internal.ResetAllBans(session)
     local changed = false
     for god, _ in pairs(godInfo) do
-        if internal.ResetGodBans(god, uiState) then
+        if internal.ResetGodBans(god, session) then
             changed = true
         end
     end
@@ -183,10 +183,10 @@ function internal.ResetAllBans(uiState)
     return changed
 end
 
-function internal.RecalculateBannedCounts(uiState)
+function internal.RecalculateBannedCounts(session)
     local changed = false
     for godKey, _ in pairs(godInfo) do
-        if internal.UpdateGodStats(godKey, uiState) then
+        if internal.UpdateGodStats(godKey, session) then
             changed = true
         end
     end

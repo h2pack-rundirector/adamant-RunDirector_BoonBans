@@ -75,6 +75,13 @@ lib = {
     isEnabled = function()
         return false
     end,
+    store = {
+        write = function(targetStore, key, value)
+            if targetStore and type(targetStore.write) == "function" then
+                targetStore.write(key, value)
+            end
+        end,
+    },
 }
 
 local storeValues = {}
@@ -269,11 +276,11 @@ function ResetBoonBansUiHarness(opts)
     local recalcCalls = 0
 
     internal.GetRootKey = opts.getRootKey
-    internal.GetBanConfig = function(godKey, uiState)
+    internal.GetBanConfig = function(godKey, session)
         local meta = internal.godMeta[godKey]
         local packedVar = meta and meta.packedConfig and meta.packedConfig.var or nil
-        if uiState and packedVar and type(uiState.get) == "function" then
-            local staged = uiState.get(packedVar)
+        if session and packedVar and type(session.read) == "function" then
+            local staged = session.read(packedVar)
             if staged ~= nil then
                 return staged
             end

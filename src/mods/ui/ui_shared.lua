@@ -169,11 +169,11 @@ function uiData.GetBoonText(boon)
     return boon.Name or boon.Key or ""
 end
 
-function uiData.GetScopeSummary(scopeKey, uiState)
-    if uiState then
+function uiData.GetScopeSummary(scopeKey, session)
+    if session then
         local total = 0
         local banned = 0
-        local currentBans = internal.GetBanConfig(scopeKey, uiState)
+        local currentBans = internal.GetBanConfig(scopeKey, session)
         for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
             total = total + 1
             if bit32.band(currentBans, boon.Mask) ~= 0 then
@@ -200,12 +200,12 @@ function uiData.GetScopeSummary(scopeKey, uiState)
     return banned, total
 end
 
-function uiData.GetVisibleBanCount(scopeKey, uiState)
+function uiData.GetVisibleBanCount(scopeKey, session)
     if type(scopeKey) ~= "string" or scopeKey == "" then
         return 0
     end
 
-    local filterText = tostring(uiState and uiState.view and uiState.view[uiData.BAN_FILTER_TEXT_ALIAS] or ""):lower()
+    local filterText = tostring(session and session.view and session.view[uiData.BAN_FILTER_TEXT_ALIAS] or ""):lower()
     local visibleCount = 0
 
     for _, boon in ipairs(uiData.GetScopeBoons(scopeKey)) do
@@ -229,10 +229,11 @@ end
 
 function uiData.IsGodPoolFilteringActive()
     local godPool = rom.mods["adamant-RunDirector_GodPool"]
-    if not godPool or not godPool.store or not godPool.definition or type(godPool.isGodEnabledInPool) ~= "function" then
+    if not godPool or type(godPool.getBoonBansFilterState) ~= "function" then
         return false, nil
     end
-    if not lib.coordinator.isEnabled(godPool.store, godPool.definition.modpack) then
+    local filteringActive = godPool.getBoonBansFilterState()
+    if filteringActive ~= true then
         return false, nil
     end
     return true, godPool
@@ -240,11 +241,12 @@ end
 
 function uiData.IsGodVisibleInGodPool(godKey, godPool)
     local root = internal.GetRootKey and internal.GetRootKey(godKey) or godKey
-    return godPool.isGodEnabledInPool(root)
+    local _, isVisible = godPool.getBoonBansFilterState(root)
+    return isVisible ~= false
 end
 
-function uiData.GetCurrentBridalGlowTargetText(uiState)
-    local selectedBoonKey = uiState and uiState.view and uiState.view.BridalGlowTargetBoon or ""
+function uiData.GetCurrentBridalGlowTargetText(session)
+    local selectedBoonKey = session and session.view and session.view.BridalGlowTargetBoon or ""
     if selectedBoonKey == nil or selectedBoonKey == "" then
         return "Current Target: Random"
     end
@@ -264,3 +266,4 @@ function uiData.GetRootDisplayLabel(rootKey, meta)
     end
     return display
 end
+

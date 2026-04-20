@@ -16,7 +16,7 @@ local function GetRunState()
 end
 
 local function IsBoonBansActive()
-    return lib.coordinator.isEnabled(store, internal.definition.modpack)
+    return lib.isModuleEnabled(store, internal.definition.modpack)
 end
 
 local function Log(fmt, ...)
@@ -175,3 +175,4 @@ internal.GetRootKey = GetRootKey
 internal.IsBoonBansActive = IsBoonBansActive
 
 PopulateGodInfo()
+

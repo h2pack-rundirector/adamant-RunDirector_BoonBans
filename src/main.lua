@@ -85,19 +85,17 @@ local function BuildDefinitionStorage()
     end
 end
 
-public.store = nil
+public.host = nil
 store = nil
+internal.session = nil
 internal.standaloneUi = nil
 
 local function RebuildStore()
     BuildDefinitionStorage()
-    public.store = lib.store.create(config, public.definition, dataDefaults)
-    store = public.store
+    store, internal.session = lib.createStore(config, public.definition, dataDefaults)
 end
 
 local function SyncPublicExports()
-    public.DrawTab = internal.DrawTab
-    public.DrawQuickContent = internal.DrawQuickContent
 end
 
 local function registerHooks()
@@ -116,20 +114,14 @@ local function init()
     import("mods/boon_catalog.lua")
     RebuildStore()
     registerHooks()
-    if lib.coordinator.isEnabled(store, public.definition.modpack) then
-        lib.mutation.apply(public.definition, store)
-    end
-
-    internal.standaloneUi = lib.host.standaloneUI(
-        public.definition,
-        store,
-        store.uiState,
-        {
-            getDrawTab = function()
-                return public.DrawTab
-            end,
-        }
-    )
+    public.host = lib.createModuleHost({
+        definition = public.definition,
+        store = store,
+        session = internal.session,
+        drawTab = internal.DrawTab,
+        drawQuickContent = internal.DrawQuickContent,
+    })
+    internal.standaloneUi = lib.standaloneHost(public.host)
 end
 
 local loader = reload.auto_single()
@@ -155,3 +147,5 @@ end
 
 ---@diagnostic disable-next-line: redundant-parameter
 rom.gui.add_to_menu_bar(addStandaloneMenuBar)
+
+

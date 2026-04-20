@@ -68,9 +68,9 @@ internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeHammerRoot = internal.uiLeanState.activeHammerRoot or "Staff"
 internal.uiLeanState.activeHammerViewByRoot = internal.uiLeanState.activeHammerViewByRoot or {}
 
-local function IsHammerCustomized(root, uiState)
+local function IsHammerCustomized(root, session)
     for _, scope in ipairs(root.scopes) do
-        local banned = uiData.GetScopeSummary(scope.key, uiState)
+        local banned = uiData.GetScopeSummary(scope.key, session)
         if banned > 0 then
             return true
         end
@@ -83,12 +83,12 @@ local function IsHammerEquipped(root)
     return equippedWeapon ~= "" and equippedWeapon:find(root.id, 1, true) ~= nil
 end
 
-local function GetHammerNavLabel(root, uiState)
+local function GetHammerNavLabel(root, session)
     local label = root.label
     if IsHammerEquipped(root) then
         label = "» " .. label .. " «"
     end
-    if IsHammerCustomized(root, uiState) then
+    if IsHammerCustomized(root, session) then
         label = label .. " *"
     end
     return label
@@ -103,7 +103,7 @@ local function GetActiveHammerRoot()
     return HAMMER_ROOTS[1]
 end
 
-local function DrawHammerForceRow(ui, uiState, scope)
+local function DrawHammerForceRow(ui, session, scope)
     local bindAlias = internal.GetBanRootAlias(scope.key)
     if not bindAlias then
         return
@@ -113,7 +113,7 @@ local function DrawHammerForceRow(ui, uiState, scope)
     ui.Text(scope.label)
     ui.SameLine()
     ui.SetCursorPosX(80)
-    lib.widgets.packedDropdown(ui, uiState, bindAlias, store, {
+    lib.widgets.packedDropdown(ui, session, bindAlias, store, {
         label = "",
         selectionMode = "singleRemaining",
         noneLabel = "None",
@@ -124,43 +124,43 @@ local function DrawHammerForceRow(ui, uiState, scope)
     })
 end
 
-local function DrawHammerForcePanel(ui, uiState, root)
+local function DrawHammerForcePanel(ui, session, root)
     lib.widgets.text(ui, "Force")
     lib.widgets.separator(ui)
     for _, scope in ipairs(root.scopes) do
-        DrawHammerForceRow(ui, uiState, scope)
+        DrawHammerForceRow(ui, session, scope)
     end
 end
 
-local function DrawHammerBanPanel(ui, uiState, scope)
-    internal.DrawBanSearchControls(ui, uiState, scope.key)
+local function DrawHammerBanPanel(ui, session, scope)
+    internal.DrawBanSearchControls(ui, session, scope.key)
     ui.SameLine()
     ui.SetCursorPosX(ui.GetCursorPosX() + 100)
 
     lib.widgets.button(ui, "Ban All", {
         id = "hammer_ban_all_" .. scope.key,
         onClick = function()
-            internal.BanAllGodBans(scope.key, uiState)
+            internal.BanAllGodBans(scope.key, session)
         end,
     })
     ui.SameLine()
     lib.widgets.button(ui, "Reset", {
         id = "hammer_reset_" .. scope.key,
         onClick = function()
-            internal.ResetGodBans(scope.key, uiState)
+            internal.ResetGodBans(scope.key, session)
         end,
     })
 
     lib.widgets.separator(ui)
-    internal.DrawFilteredPackedBanList(ui, uiState, scope.key)
+    internal.DrawFilteredPackedBanList(ui, session, scope.key)
 end
 
-function internal.DrawHammersTab(ui, uiState)
+function internal.DrawHammersTab(ui, session)
     local tabs = {}
     for _, root in ipairs(HAMMER_ROOTS) do
         tabs[#tabs + 1] = {
             key = root.id,
-            label = GetHammerNavLabel(root, uiState),
+            label = GetHammerNavLabel(root, session),
             color = uiData.GetSourceColor(root.primaryScopeKey),
         }
     end
@@ -179,23 +179,23 @@ function internal.DrawHammersTab(ui, uiState)
     if ui.BeginTabBar("BoonBansHammersViews##" .. root.id) then
         if ui.BeginTabItem("Force") then
             internal.uiLeanState.activeHammerViewByRoot[root.id] = "force"
-            DrawHammerForcePanel(ui, uiState, root)
+            DrawHammerForcePanel(ui, session, root)
             ui.EndTabItem()
         end
         for _, scope in ipairs(root.scopes) do
             if ui.BeginTabItem(scope.label) then
                 internal.uiLeanState.activeHammerViewByRoot[root.id] = scope.key
-                DrawHammerBanPanel(ui, uiState, scope)
+                DrawHammerBanPanel(ui, session, scope)
                 ui.EndTabItem()
             end
         end
         ui.EndTabBar()
     elseif activeView == "force" then
-        DrawHammerForcePanel(ui, uiState, root)
+        DrawHammerForcePanel(ui, session, root)
     else
         for _, scope in ipairs(root.scopes) do
             if scope.key == activeView then
-                DrawHammerBanPanel(ui, uiState, scope)
+                DrawHammerBanPanel(ui, session, scope)
                 break
             end
         end

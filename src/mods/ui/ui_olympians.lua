@@ -29,9 +29,9 @@ internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeOlympianRoot = internal.uiLeanState.activeOlympianRoot or "Aphrodite"
 internal.uiLeanState.activeOlympianViewByRoot = internal.uiLeanState.activeOlympianViewByRoot or {}
 
-local function IsRootCustomized(root, uiState)
+local function IsRootCustomized(root, session)
     for _, scope in ipairs(root.scopes) do
-        local banned = uiData.GetScopeSummary(scope.key, uiState)
+        local banned = uiData.GetScopeSummary(scope.key, session)
         if banned > 0 then
             return true
         end
@@ -50,9 +50,9 @@ local function GetVisibleOlympianRoots()
     return roots, godPoolFiltering
 end
 
-local function GetNavLabel(root, uiState)
+local function GetNavLabel(root, session)
     local label = root.label
-    if IsRootCustomized(root, uiState) then
+    if IsRootCustomized(root, session) then
         label = label .. " *"
     end
     return label
@@ -67,7 +67,7 @@ local function GetActiveRoot(visibleRoots)
     return visibleRoots[1]
 end
 
-local function DrawForceRow(ui, uiState, scope)
+local function DrawForceRow(ui, session, scope)
     local bindAlias = internal.GetBanRootAlias(scope.key)
     if not bindAlias then
         return
@@ -77,7 +77,7 @@ local function DrawForceRow(ui, uiState, scope)
     ui.Text(scope.label)
     ui.SameLine()
     ui.SetCursorPosX(80)
-    lib.widgets.packedDropdown(ui, uiState, bindAlias, store, {
+    lib.widgets.packedDropdown(ui, session, bindAlias, store, {
         label = "",
         selectionMode = "singleRemaining",
         noneLabel = "None",
@@ -88,38 +88,38 @@ local function DrawForceRow(ui, uiState, scope)
     })
 end
 
-local function DrawForcePanel(ui, uiState, root)
+local function DrawForcePanel(ui, session, root)
     lib.widgets.text(ui, "Force")
     lib.widgets.separator(ui)
     for _, scope in ipairs(root.scopes) do
-        DrawForceRow(ui, uiState, scope)
+        DrawForceRow(ui, session, scope)
     end
 end
 
-local function DrawBanPanel(ui, uiState, scope)
-    internal.DrawBanSearchControls(ui, uiState, scope.key)
+local function DrawBanPanel(ui, session, scope)
+    internal.DrawBanSearchControls(ui, session, scope.key)
     ui.SameLine()
     ui.SetCursorPosX(ui.GetCursorPosX() + 100)
 
     lib.widgets.button(ui, "Ban All", {
         id = "olympians_ban_all_" .. scope.key,
         onClick = function()
-            internal.BanAllGodBans(scope.key, uiState)
+            internal.BanAllGodBans(scope.key, session)
         end,
     })
     ui.SameLine()
     lib.widgets.button(ui, "Reset", {
         id = "olympians_reset_" .. scope.key,
         onClick = function()
-            internal.ResetGodBans(scope.key, uiState)
+            internal.ResetGodBans(scope.key, session)
         end,
     })
 
     lib.widgets.separator(ui)
-    internal.DrawFilteredPackedBanList(ui, uiState, scope.key)
+    internal.DrawFilteredPackedBanList(ui, session, scope.key)
 end
 
-local function DrawRarityPanel(ui, uiState, root)
+local function DrawRarityPanel(ui, session, root)
     for _, boon in ipairs(uiData.GetScopeBoons(root.primaryScopeKey)) do
         if uiData.IsRarityEligibleBoon(boon) then
             local rarityAlias = internal.GetRarityAlias(root.primaryScopeKey, boon.Key)
@@ -128,7 +128,7 @@ local function DrawRarityPanel(ui, uiState, root)
                 ui.Text(uiData.GetBoonText(boon))
                 ui.SameLine()
                 ui.SetCursorPosX(220)
-                lib.widgets.dropdown(ui, uiState, rarityAlias, {
+                lib.widgets.dropdown(ui, session, rarityAlias, {
                     label = "",
                     values = { 0, 1, 2, 3 },
                     displayValues = uiData.RARITY_LABELS,
@@ -210,12 +210,12 @@ local function EnsureBridalGlowRootSelection(roots, selectedBoonKey)
     return fallback
 end
 
-local function DrawBridalGlowPanel(ui, uiState)
-    local selectedBoonKey = uiState.view.BridalGlowTargetBoon or ""
+local function DrawBridalGlowPanel(ui, session)
+    local selectedBoonKey = session.view.BridalGlowTargetBoon or ""
     local eligibleRoots = GetBridalGlowEligibleRoots()
 
     lib.widgets.text(ui, "Choose the Olympian god and boon pool Bridal Glow can target.")
-    lib.widgets.text(ui, uiData.GetCurrentBridalGlowTargetText(uiState))
+    lib.widgets.text(ui, uiData.GetCurrentBridalGlowTargetText(session))
     lib.widgets.separator(ui)
 
     if #eligibleRoots == 0 then
@@ -252,19 +252,19 @@ local function DrawBridalGlowPanel(ui, uiState)
     })
     lib.widgets.separator(ui)
     if ui.Selectable("Random", selectedBoonKey == "") then
-        internal.SetBridalGlowTargetBoonKey(nil, uiState)
+        internal.SetBridalGlowTargetBoonKey(nil, session)
         selectedBoonKey = ""
     end
     for _, boon in ipairs(eligibleBoons) do
         if ui.Selectable(boon.BridalGlowLabel, boon.Key == selectedBoonKey) then
-            internal.SetBridalGlowTargetBoonKey(boon.Key, uiState)
+            internal.SetBridalGlowTargetBoonKey(boon.Key, session)
             selectedBoonKey = boon.Key
         end
     end
     ui.EndChild()
 end
 
-function internal.DrawOlympiansTab(ui, uiState)
+function internal.DrawOlympiansTab(ui, session)
     local visibleRoots, godPoolFiltering = GetVisibleOlympianRoots()
     if #visibleRoots == 0 then
         lib.widgets.text(ui, "No Olympians are currently available.", {
@@ -277,7 +277,7 @@ function internal.DrawOlympiansTab(ui, uiState)
     for _, root in ipairs(visibleRoots) do
         tabs[#tabs + 1] = {
             key = root.id,
-            label = GetNavLabel(root, uiState),
+            label = GetNavLabel(root, session),
             color = uiData.GetSourceColor(root.primaryScopeKey),
         }
     end
@@ -302,24 +302,24 @@ function internal.DrawOlympiansTab(ui, uiState)
     if ui.BeginTabBar("BoonBansOlympiansViews##" .. root.id) then
         if ui.BeginTabItem("Force") then
             internal.uiLeanState.activeOlympianViewByRoot[root.id] = "force"
-            DrawForcePanel(ui, uiState, root)
+            DrawForcePanel(ui, session, root)
             ui.EndTabItem()
         end
         for _, scope in ipairs(root.scopes) do
             if ui.BeginTabItem(scope.label) then
                 internal.uiLeanState.activeOlympianViewByRoot[root.id] = scope.key
-                DrawBanPanel(ui, uiState, scope)
+                DrawBanPanel(ui, session, scope)
                 ui.EndTabItem()
             end
         end
         if ui.BeginTabItem("Rarity") then
             internal.uiLeanState.activeOlympianViewByRoot[root.id] = "rarity"
-            DrawRarityPanel(ui, uiState, root)
+            DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end
         if root.hasBridalGlow and ui.BeginTabItem("Bridal Glow Target") then
             internal.uiLeanState.activeOlympianViewByRoot[root.id] = "bridal_glow"
-            DrawBridalGlowPanel(ui, uiState)
+            DrawBridalGlowPanel(ui, session)
             ui.EndTabItem()
         end
         ui.EndTabBar()

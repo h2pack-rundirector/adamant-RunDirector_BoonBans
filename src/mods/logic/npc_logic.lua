@@ -19,7 +19,7 @@ local function Log(fmt, ...)
     lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
-modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
+lib.hooks.Wrap(internal, "CirceRemoveShrineUpgrades", function(base, args)
     if not IsBoonBansActive() then return base(args) end
     local restores = {}
     if godInfo["CirceBNB"] then
@@ -39,7 +39,7 @@ modutil.mod.Path.Wrap("CirceRemoveShrineUpgrades", function(base, args)
     end
 end)
 
-modutil.mod.Path.Wrap("CirceRandomMetaUpgrade", function(base, args)
+lib.hooks.Wrap(internal, "CirceRandomMetaUpgrade", function(base, args)
     if not IsBoonBansActive() then return base(args) end
     local restores = {}
     local metaState = GameState.MetaUpgradeState or {}
@@ -60,7 +60,7 @@ modutil.mod.Path.Wrap("CirceRandomMetaUpgrade", function(base, args)
     end
 end)
 
-modutil.mod.Path.Wrap("AddRandomMetaUpgrades", function(base, numCards, args)
+lib.hooks.Wrap(internal, "AddRandomMetaUpgrades", function(base, numCards, args)
     if not IsBoonBansActive() then return base(numCards, args) end
     if numCards and numCards ~= GetTotalHeroTraitValue("PostBossCards") then return base(numCards, args) end
 
@@ -86,7 +86,7 @@ modutil.mod.Path.Wrap("AddRandomMetaUpgrades", function(base, numCards, args)
 end)
 
 local function wrapNPCChoice(funcName)
-    modutil.mod.Path.Wrap(funcName, function(base, source, args, screen)
+    lib.hooks.Wrap(internal, funcName, function(base, source, args, screen)
         if IsBoonBansActive() and args.UpgradeOptions then
             local allowed = {}
             local banned = {}
@@ -147,7 +147,7 @@ local function wrapNPCChoice(funcName)
     end)
 end
 
-modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
+lib.hooks.Wrap(internal, "GetEligibleSpells", function(base, screen, args)
     local eligible = base(screen, args)
     if not IsBoonBansActive() then return eligible end
 
@@ -197,14 +197,14 @@ modutil.mod.Path.Wrap("GetEligibleSpells", function(base, screen, args)
     return allowed
 end)
 
-modutil.mod.Path.Wrap("OpenUpgradeChoiceMenu", function(base, source, args)
+lib.hooks.Wrap(internal, "OpenUpgradeChoiceMenu", function(base, source, args)
     if IsBoonBansActive() and source and source.Name then
         internal.ActiveGodKey = internal.GetGodFromLootsource(source.Name)
     end
     base(source, args)
 end)
 
-modutil.mod.Path.Wrap("AddTraitToHero", function(base, args)
+lib.hooks.Wrap(internal, "AddTraitToHero", function(base, args)
     local result = base(args)
     local traitData = args.TraitData
     local state = GetRunState()
@@ -237,7 +237,7 @@ modutil.mod.Path.Wrap("AddTraitToHero", function(base, args)
     return result
 end)
 
-modutil.mod.Path.Wrap("GetRarityChances", function(base, loot)
+lib.hooks.Wrap(internal, "GetRarityChances", function(base, loot)
     local chances = base(loot)
     local state = GetRunState()
     if IsBoonBansActive() and CurrentRun and state.ImproveFirstNBoonRarity > 0 and loot.GodLoot then

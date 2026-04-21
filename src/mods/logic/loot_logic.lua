@@ -136,7 +136,7 @@ local function GeneratePriorityQueue(allowed, banned, godKey, currentTier, isHam
     return queue, duoLegendaryQueue
 end
 
-modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, lootData, upgradeChoiceData)
+lib.hooks.Wrap(internal, "GetEligibleUpgrades", function(base, upgradeOptions, lootData, upgradeChoiceData)
     if not IsBoonBansActive() then return base(upgradeOptions, lootData, upgradeChoiceData) end
 
     local currentGodKey = internal.GetGodFromLootsource(lootData.Name)
@@ -219,14 +219,14 @@ modutil.mod.Path.Wrap("GetEligibleUpgrades", function(base, upgradeOptions, loot
     return queue
 end)
 
-modutil.mod.Path.Wrap("GetReplacementTraits", function(base, traitNames, onlyFromLootName)
+lib.hooks.Wrap(internal, "GetReplacementTraits", function(base, traitNames, onlyFromLootName)
     skipIsTraitEligible = true
     local result = base(traitNames, onlyFromLootName)
     skipIsTraitEligible = false
     return result
 end)
 
-modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
+lib.hooks.Wrap(internal, "SetTraitsOnLoot", function(base, lootData, args)
     base(lootData, args)
 
     -- Consume pending state unconditionally to prevent stale values on next call.
@@ -367,7 +367,7 @@ modutil.mod.Path.Wrap("SetTraitsOnLoot", function(base, lootData, args)
     end
 end)
 
-modutil.mod.Path.Wrap("IsTraitEligible", function(base, traitData, args)
+lib.hooks.Wrap(internal, "IsTraitEligible", function(base, traitData, args)
     if not IsBoonBansActive() or skipIsTraitEligible then return base(traitData, args) end
 
     local info = internal.FindTraitInfo(traitData.Name, nil)
@@ -388,14 +388,14 @@ modutil.mod.Path.Wrap("IsTraitEligible", function(base, traitData, args)
     return base(traitData, args)
 end)
 
-modutil.mod.Path.Wrap("GiveRandomHadesBoonAndBoostBoons", function(base, args)
+lib.hooks.Wrap(internal, "GiveRandomHadesBoonAndBoostBoons", function(base, args)
     isKeepsakeOffering = true
     local result = base(args)
     isKeepsakeOffering = false
     return result
 end)
 
-modutil.mod.Path.Wrap("HeraSuperchargeBoon", function(base, args, origTraitData, contextArgs)
+lib.hooks.Wrap(internal, "HeraSuperchargeBoon", function(base, args, origTraitData, contextArgs)
     local targetBoon = internal.store.read("BridalGlowTargetBoon")
     if not targetBoon or targetBoon == "" then
         base(args, origTraitData, contextArgs)

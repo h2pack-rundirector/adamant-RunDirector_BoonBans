@@ -42,8 +42,6 @@ local store
 local session
 internal.standaloneUi = nil
 
-local function SyncPublicExports()
-end
 
 local function init()
     import_as_fallback(rom.game)
@@ -56,16 +54,12 @@ local function init()
     internal.BuildDefinitionStorage(dataDefaults)
     store, session = lib.createStore(config, public.definition, dataDefaults)
     internal.store = store
-
-    SyncPublicExports()
-    if internal.RegisterHooks then
-        internal.RegisterHooks()
-    end
-
     public.host = lib.createModuleHost({
         definition = public.definition,
         store = store,
         session = session,
+        hookOwner = internal,
+        registerHooks = internal.RegisterHooks,
         drawTab = internal.DrawTab,
         drawQuickContent = internal.DrawQuickContent,
     })
@@ -75,7 +69,7 @@ end
 local loader = reload.auto_single()
 
 modutil.once_loaded.game(function()
-    loader.load(init, init)
+    loader.load(nil, init)
 end)
 
 local function renderStandaloneWindow()
@@ -95,5 +89,3 @@ end
 
 ---@diagnostic disable-next-line: redundant-parameter
 rom.gui.add_to_menu_bar(addStandaloneMenuBar)
-
-

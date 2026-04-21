@@ -53,7 +53,7 @@ local function init()
     import("mods/logic.lua")
     import("mods/ui.lua")
 
-    internal.BuildDefinitionStorage(config)
+    internal.BuildDefinitionStorage(dataDefaults)
     store, session = lib.createStore(config, public.definition, dataDefaults)
     internal.store = store
 

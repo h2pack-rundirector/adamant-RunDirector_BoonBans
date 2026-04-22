@@ -145,7 +145,7 @@ function internal.DrawNpcsTab(ui, session)
 
     internal.uiLeanState.activeNpcRoot = lib.nav.verticalTabs(ui, {
         id = "BoonBansNpcsTabs",
-        navWidth = 260,
+        navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
         activeKey = internal.uiLeanState.activeNpcRoot,
     })

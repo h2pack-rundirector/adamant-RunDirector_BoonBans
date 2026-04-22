@@ -1,68 +1,24 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
-local HAMMER_ROOTS = {
-    {
-        id = "Staff",
-        label = "Staff",
-        primaryScopeKey = "Staff",
-        scopes = {
-            { key = "Staff", label = "1st" },
-            { key = "Staff2", label = "2nd" },
-            { key = "Staff3", label = "3rd" },
-        },
-    },
-    {
-        id = "Dagger",
-        label = "Blades",
-        primaryScopeKey = "Dagger",
-        scopes = {
-            { key = "Dagger", label = "1st" },
-            { key = "Dagger2", label = "2nd" },
-            { key = "Dagger3", label = "3rd" },
-        },
-    },
-    {
-        id = "Axe",
-        label = "Axe",
-        primaryScopeKey = "Axe",
-        scopes = {
-            { key = "Axe", label = "1st" },
-            { key = "Axe2", label = "2nd" },
-            { key = "Axe3", label = "3rd" },
-        },
-    },
-    {
-        id = "Torch",
-        label = "Torch",
-        primaryScopeKey = "Torch",
-        scopes = {
-            { key = "Torch", label = "1st" },
-            { key = "Torch2", label = "2nd" },
-            { key = "Torch3", label = "3rd" },
-        },
-    },
-    {
-        id = "Lob",
-        label = "Skull",
-        primaryScopeKey = "Lob",
-        scopes = {
-            { key = "Lob", label = "1st" },
-            { key = "Lob2", label = "2nd" },
-            { key = "Lob3", label = "3rd" },
-        },
-    },
-    {
-        id = "Suit",
-        label = "Coat",
-        primaryScopeKey = "Suit",
-        scopes = {
-            { key = "Suit", label = "1st" },
-            { key = "Suit2", label = "2nd" },
-            { key = "Suit3", label = "3rd" },
-        },
-    },
+local HAMMER_ROOT_KEYS = {
+    "Staff",
+    "Dagger",
+    "Axe",
+    "Torch",
+    "Lob",
+    "Suit",
 }
+
+local function BuildHammerRoots()
+    local roots = {}
+    for _, rootKey in ipairs(HAMMER_ROOT_KEYS) do
+        roots[#roots + 1] = uiData.BuildTierRoot(rootKey, {
+            hasRarity = false,
+        })
+    end
+    return roots
+end
 
 internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeHammerRoot = internal.uiLeanState.activeHammerRoot or "Staff"
@@ -95,12 +51,12 @@ local function GetHammerNavLabel(root, session)
 end
 
 local function GetActiveHammerRoot()
-    for _, root in ipairs(HAMMER_ROOTS) do
+    for _, root in ipairs(BuildHammerRoots()) do
         if root.id == internal.uiLeanState.activeHammerRoot then
             return root
         end
     end
-    return HAMMER_ROOTS[1]
+    return uiData.BuildTierRoot(HAMMER_ROOT_KEYS[1], { hasRarity = false })
 end
 
 local function DrawHammerForceRow(ui, session, scope)
@@ -157,7 +113,7 @@ end
 
 function internal.DrawHammersTab(ui, session)
     local tabs = {}
-    for _, root in ipairs(HAMMER_ROOTS) do
+    for _, root in ipairs(BuildHammerRoots()) do
         tabs[#tabs + 1] = {
             key = root.id,
             label = GetHammerNavLabel(root, session),
@@ -167,7 +123,7 @@ function internal.DrawHammersTab(ui, session)
 
     internal.uiLeanState.activeHammerRoot = lib.nav.verticalTabs(ui, {
         id = "BoonBansHammersTabs",
-        navWidth = 220,
+        navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
         activeKey = internal.uiLeanState.activeHammerRoot,
     })

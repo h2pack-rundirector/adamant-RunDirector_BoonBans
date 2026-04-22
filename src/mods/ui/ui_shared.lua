@@ -1,4 +1,5 @@
 local internal = RunDirectorBoonBans_Internal
+internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
 local uiData = internal.ui
 
@@ -41,6 +42,7 @@ uiData.NPC_VIEW_REGION_ALIAS = "NpcViewRegion"
 uiData.DIRECT_BANS_VIEW_ID = "__bans__"
 uiData.FORCE_VIEW_ID = "__force__"
 uiData.RARITY_VIEW_ID = "__rarity__"
+uiData.ROOT_NAV_WIDTH = 220
 
 uiData.bridalGlowEligibleRoots = nil
 uiData.rarityRowsByRoot = {}
@@ -260,6 +262,7 @@ function uiData.GetCurrentBridalGlowTargetText(session)
 end
 
 function uiData.GetRootDisplayLabel(rootKey, meta)
+    meta = meta or {}
     local display = meta.displayTextKey or rootKey
     if meta.maxTiers then
         display = display:gsub("^1st%s+", "")
@@ -267,3 +270,67 @@ function uiData.GetRootDisplayLabel(rootKey, meta)
     return display
 end
 
+function uiData.GetRootMeta(rootKey)
+    return internal.godMeta and internal.godMeta[rootKey] or nil
+end
+
+function uiData.IsRarityRoot(rootKey)
+    local meta = uiData.GetRootMeta(rootKey)
+    return type(meta) == "table" and meta.rarityVar ~= nil
+end
+
+function uiData.GetTierScopeKey(rootKey, tier)
+    if tier <= 1 then
+        return rootKey
+    end
+    return rootKey .. tostring(tier)
+end
+
+function uiData.BuildTierScopes(rootKey)
+    local rootMeta = uiData.GetRootMeta(rootKey) or {}
+    local maxTiers = math.max(math.floor(tonumber(rootMeta.maxTiers) or 1), 1)
+    local scopes = {}
+
+    for tier = 1, maxTiers do
+        local scopeKey = uiData.GetTierScopeKey(rootKey, tier)
+        if uiData.GetRootMeta(scopeKey) then
+            scopes[#scopes + 1] = {
+                key = scopeKey,
+                label = uiData.GetOrdinal(tier),
+            }
+        end
+    end
+
+    if #scopes == 0 then
+        scopes[1] = { key = rootKey, label = "Bans" }
+    end
+    return scopes
+end
+
+function uiData.BuildTierRoot(rootKey, opts)
+    opts = opts or {}
+    local rootMeta = uiData.GetRootMeta(rootKey) or {}
+    return {
+        id = rootKey,
+        label = opts.label or uiData.GetRootDisplayLabel(rootKey, rootMeta),
+        primaryScopeKey = rootKey,
+        hasRarity = opts.hasRarity ~= nil and opts.hasRarity or uiData.IsRarityRoot(rootKey),
+        hasBridalGlow = opts.hasBridalGlow == true,
+        scopes = uiData.BuildTierScopes(rootKey),
+    }
+end
+
+function uiData.BuildSingleScopeRoot(rootKey, opts)
+    opts = opts or {}
+    local rootMeta = uiData.GetRootMeta(rootKey) or {}
+    return {
+        id = rootKey,
+        label = opts.label or uiData.GetRootDisplayLabel(rootKey, rootMeta),
+        group = opts.group,
+        primaryScopeKey = rootKey,
+        hasRarity = opts.hasRarity ~= nil and opts.hasRarity or uiData.IsRarityRoot(rootKey),
+        scopes = {
+            { key = rootKey, label = opts.scopeLabel or "Bans" },
+        },
+    }
+end

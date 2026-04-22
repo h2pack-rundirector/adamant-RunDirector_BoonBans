@@ -1,90 +1,29 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
-local OTHER_GOD_ROOTS = {
-    {
-        id = "Hermes",
-        label = "Hermes",
-        primaryScopeKey = "Hermes",
-        hasRarity = true,
-        scopes = {
-            { key = "Hermes", label = "1st" },
-            { key = "Hermes2", label = "2nd" },
-        },
-    },
-    {
-        id = "Selene",
-        label = "Selene",
-        primaryScopeKey = "Selene",
-        hasRarity = false,
-        scopes = {
-            { key = "Selene", label = "Bans" },
-        },
-    },
-    {
-        id = "Artemis",
-        label = "Artemis",
-        primaryScopeKey = "Artemis",
-        hasRarity = true,
-        scopes = {
-            { key = "Artemis", label = "Bans" },
-        },
-    },
-    {
-        id = "Athena",
-        label = "Athena",
-        primaryScopeKey = "Athena",
-        hasRarity = true,
-        scopes = {
-            { key = "Athena", label = "Bans" },
-        },
-    },
-    {
-        id = "ChaosBuffs",
-        label = "Chaos Buffs",
-        primaryScopeKey = "ChaosBuffs",
-        hasRarity = false,
-        scopes = {
-            { key = "ChaosBuffs", label = "Bans" },
-        },
-    },
-    {
-        id = "ChaosCurses",
-        label = "Chaos Curses",
-        primaryScopeKey = "ChaosCurses",
-        hasRarity = false,
-        scopes = {
-            { key = "ChaosCurses", label = "Bans" },
-        },
-    },
-    {
-        id = "Judgement1",
-        label = "First Biome Judgement",
-        primaryScopeKey = "Judgement1",
-        hasRarity = false,
-        scopes = {
-            { key = "Judgement1", label = "Bans" },
-        },
-    },
-    {
-        id = "Judgement2",
-        label = "Second Biome Judgement",
-        primaryScopeKey = "Judgement2",
-        hasRarity = false,
-        scopes = {
-            { key = "Judgement2", label = "Bans" },
-        },
-    },
-    {
-        id = "Judgement3",
-        label = "Third Biome Judgement",
-        primaryScopeKey = "Judgement3",
-        hasRarity = false,
-        scopes = {
-            { key = "Judgement3", label = "Bans" },
-        },
-    },
+local OTHER_GOD_ROOT_SPECS = {
+    { id = "Hermes", tiered = true },
+    { id = "Selene" },
+    { id = "Artemis" },
+    { id = "Athena" },
+    { id = "ChaosBuffs" },
+    { id = "ChaosCurses" },
+    { id = "Judgement1" },
+    { id = "Judgement2" },
+    { id = "Judgement3" },
 }
+
+local function BuildOtherGodRoots()
+    local roots = {}
+    for _, spec in ipairs(OTHER_GOD_ROOT_SPECS) do
+        if spec.tiered then
+            roots[#roots + 1] = uiData.BuildTierRoot(spec.id)
+        else
+            roots[#roots + 1] = uiData.BuildSingleScopeRoot(spec.id)
+        end
+    end
+    return roots
+end
 
 internal.uiLeanState = internal.uiLeanState or {}
 internal.uiLeanState.activeOtherGodRoot = internal.uiLeanState.activeOtherGodRoot or "Hermes"
@@ -109,12 +48,12 @@ local function GetNavLabel(root, session)
 end
 
 local function GetActiveRoot()
-    for _, root in ipairs(OTHER_GOD_ROOTS) do
+    for _, root in ipairs(BuildOtherGodRoots()) do
         if root.id == internal.uiLeanState.activeOtherGodRoot then
             return root
         end
     end
-    return OTHER_GOD_ROOTS[1]
+    return BuildOtherGodRoots()[1]
 end
 
 local function DrawForceRow(ui, session, scope)
@@ -192,7 +131,7 @@ end
 
 function internal.DrawOtherGodsTab(ui, session)
     local tabs = {}
-    for _, root in ipairs(OTHER_GOD_ROOTS) do
+    for _, root in ipairs(BuildOtherGodRoots()) do
         tabs[#tabs + 1] = {
             key = root.id,
             label = GetNavLabel(root, session),
@@ -202,7 +141,7 @@ function internal.DrawOtherGodsTab(ui, session)
 
     internal.uiLeanState.activeOtherGodRoot = lib.nav.verticalTabs(ui, {
         id = "BoonBansOtherGodsTabs",
-        navWidth = 260,
+        navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
         activeKey = internal.uiLeanState.activeOtherGodRoot,
     })

@@ -1,28 +1,26 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
 
-local OLYMPIAN_ROOTS = {
-    { id = "Aphrodite", label = "Aphrodite" },
-    { id = "Apollo", label = "Apollo" },
-    { id = "Ares", label = "Ares" },
-    { id = "Demeter", label = "Demeter" },
-    { id = "Hephaestus", label = "Hephaestus" },
-    { id = "Hera", label = "Hera", hasBridalGlow = true },
-    { id = "Hestia", label = "Hestia" },
-    { id = "Poseidon", label = "Poseidon" },
-    { id = "Zeus", label = "Zeus" },
+local OLYMPIAN_ROOT_KEYS = {
+    "Aphrodite",
+    "Apollo",
+    "Ares",
+    "Demeter",
+    "Hephaestus",
+    "Hera",
+    "Hestia",
+    "Poseidon",
+    "Zeus",
 }
 
-for _, root in ipairs(OLYMPIAN_ROOTS) do
-    root.primaryScopeKey = root.id
-    root.hasRarity = true
-    root.scopes = {
-        { key = root.id, label = "1st" },
-        { key = root.id .. "2", label = "2nd" },
-        { key = root.id .. "3", label = "3rd" },
-        { key = root.id .. "4", label = "4th" },
-        { key = root.id .. "5", label = "5th" },
-    }
+local function BuildOlympianRoots()
+    local roots = {}
+    for _, rootKey in ipairs(OLYMPIAN_ROOT_KEYS) do
+        roots[#roots + 1] = uiData.BuildTierRoot(rootKey, {
+            hasBridalGlow = rootKey == "Hera",
+        })
+    end
+    return roots
 end
 
 internal.uiLeanState = internal.uiLeanState or {}
@@ -42,7 +40,7 @@ end
 local function GetVisibleOlympianRoots()
     local godPoolFiltering, godPool = uiData.IsGodPoolFilteringActive()
     local roots = {}
-    for _, root in ipairs(OLYMPIAN_ROOTS) do
+    for _, root in ipairs(BuildOlympianRoots()) do
         if not godPoolFiltering or uiData.IsGodVisibleInGodPool(root.id, godPool) then
             roots[#roots + 1] = root
         end
@@ -284,7 +282,7 @@ function internal.DrawOlympiansTab(ui, session)
 
     internal.uiLeanState.activeOlympianRoot = lib.nav.verticalTabs(ui, {
         id = "BoonBansOlympiansTabs",
-        navWidth = 260,
+        navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
         activeKey = internal.uiLeanState.activeOlympianRoot,
     })

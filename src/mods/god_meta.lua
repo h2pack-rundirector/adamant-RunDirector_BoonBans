@@ -3,7 +3,7 @@ local meta = {}
 local internal = RunDirectorBoonBans_Internal
 
 local function Log(fmt, ...)
-    local definitionId = internal.definition and internal.definition.id or "BoonBans"
+    local definitionId = internal.definition.id
     local activeStore = internal.store
     local debugEnabled = activeStore and activeStore.read("DebugMode") == true or false
     lib.logging.logIf(definitionId, debugEnabled, fmt, ...)

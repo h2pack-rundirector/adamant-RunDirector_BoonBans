@@ -52,10 +52,10 @@ local function init()
     import("mods/ui.lua")
 
     internal.BuildDefinitionStorage(dataDefaults)
-    store, session = lib.createStore(config, public.definition, dataDefaults)
+    store, session = lib.createStore(config, internal.definition, dataDefaults)
     internal.store = store
     public.host = lib.createModuleHost({
-        definition = public.definition,
+        definition = internal.definition,
         store = store,
         session = session,
         hookOwner = internal,

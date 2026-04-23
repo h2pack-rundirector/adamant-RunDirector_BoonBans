@@ -27,7 +27,7 @@ local function BuildPackedStorageNode(item)
 end
 
 function internal.BuildDefinitionStorage(config)
-    public.definition.storage = {
+    internal.definition.storage = {
         { type = "bool",   alias = "EnablePadding",                   configKey = "EnablePadding" },
         { type = "int",    alias = "Padding_PrioritizeCoreForFirstN", configKey = "Padding_PrioritizeCoreForFirstN", min = 0, max = 15 },
         { type = "bool",   alias = "Padding_AvoidFutureAllowed",      configKey = "Padding_AvoidFutureAllowed" },
@@ -52,7 +52,7 @@ function internal.BuildDefinitionStorage(config)
         return a.key < b.key
     end)
     for _, item in ipairs(packedKeys) do
-        table.insert(public.definition.storage, BuildPackedStorageNode(item))
+        table.insert(internal.definition.storage, BuildPackedStorageNode(item))
     end
 end
 

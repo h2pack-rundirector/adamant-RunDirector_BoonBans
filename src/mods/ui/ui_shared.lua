@@ -2,6 +2,7 @@ local internal = RunDirectorBoonBans_Internal
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
 local uiData = internal.ui
+local GOD_AVAILABILITY_INTEGRATION = "run-director.god-availability"
 
 uiData.EMPTY_LIST = {}
 
@@ -230,21 +231,12 @@ function uiData.GetSourceColor(scopeKey)
 end
 
 function uiData.IsGodPoolFilteringActive()
-    local godPool = rom.mods["adamant-RunDirector_GodPool"]
-    if not godPool or type(godPool.getBoonBansFilterState) ~= "function" then
-        return false, nil
-    end
-    local filteringActive = godPool.getBoonBansFilterState()
-    if filteringActive ~= true then
-        return false, nil
-    end
-    return true, godPool
+    return lib.integrations.invoke(GOD_AVAILABILITY_INTEGRATION, "isActive", false) == true
 end
 
-function uiData.IsGodVisibleInGodPool(godKey, godPool)
+function uiData.IsGodVisibleInGodPool(godKey)
     local root = internal.GetRootKey and internal.GetRootKey(godKey) or godKey
-    local _, isVisible = godPool.getBoonBansFilterState(root)
-    return isVisible ~= false
+    return lib.integrations.invoke(GOD_AVAILABILITY_INTEGRATION, "isAvailable", true, root) ~= false
 end
 
 function uiData.GetCurrentBridalGlowTargetText(session)

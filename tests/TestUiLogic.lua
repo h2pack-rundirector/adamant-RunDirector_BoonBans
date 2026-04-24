@@ -76,3 +76,48 @@ function TestUiShared:testGetRootDisplayLabelDropsTierPrefixForTieredRoots()
         "Circe"
     )
 end
+
+function TestUiShared:testGodPoolFilteringUsesIntegrationInvoke()
+    local calls = {}
+    lib.integrations.invoke = function(id, methodName, fallback, godKey)
+        table.insert(calls, {
+            id = id,
+            methodName = methodName,
+            fallback = fallback,
+            godKey = godKey,
+        })
+        if methodName == "isActive" then
+            return true
+        end
+        if methodName == "isAvailable" then
+            return godKey ~= "Apollo"
+        end
+        return fallback
+    end
+
+    lu.assertTrue(self.ui.IsGodPoolFilteringActive())
+    lu.assertFalse(self.ui.IsGodVisibleInGodPool("Apollo"))
+    lu.assertTrue(self.ui.IsGodVisibleInGodPool("Zeus"))
+
+    lu.assertEquals(calls[1], {
+        id = "run-director.god-availability",
+        methodName = "isActive",
+        fallback = false,
+        godKey = nil,
+    })
+    lu.assertEquals(calls[2], {
+        id = "run-director.god-availability",
+        methodName = "isAvailable",
+        fallback = true,
+        godKey = "Apollo",
+    })
+end
+
+function TestUiShared:testGodPoolFilteringFallsBackInactiveWhenIntegrationMissing()
+    lib.integrations.invoke = function(_, _, fallback)
+        return fallback
+    end
+
+    lu.assertFalse(self.ui.IsGodPoolFilteringActive())
+    lu.assertTrue(self.ui.IsGodVisibleInGodPool("Apollo"))
+end

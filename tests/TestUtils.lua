@@ -75,6 +75,11 @@ lib = {
     isEnabled = function()
         return false
     end,
+    integrations = {
+        invoke = function(_, _, fallback)
+            return fallback
+        end,
+    },
     store = {
         write = function(targetStore, key, value)
             if targetStore and type(targetStore.write) == "function" then
@@ -247,6 +252,14 @@ end
 
 function ResetBoonBansUiHarness(opts)
     opts = opts or {}
+    lib.integrations = lib.integrations or {
+        invoke = function(_, _, fallback)
+            return fallback
+        end,
+    }
+    lib.integrations.invoke = lib.integrations.invoke or function(_, _, fallback)
+        return fallback
+    end
 
     for key in pairs(storeValues) do
         storeValues[key] = nil

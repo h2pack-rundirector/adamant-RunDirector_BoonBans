@@ -38,10 +38,10 @@ local function IsRootCustomized(root, session)
 end
 
 local function GetVisibleOlympianRoots()
-    local godPoolFiltering, godPool = uiData.IsGodPoolFilteringActive()
+    local godPoolFiltering = uiData.IsGodPoolFilteringActive()
     local roots = {}
     for _, root in ipairs(BuildOlympianRoots()) do
-        if not godPoolFiltering or uiData.IsGodVisibleInGodPool(root.id, godPool) then
+        if not godPoolFiltering or uiData.IsGodVisibleInGodPool(root.id) then
             roots[#roots + 1] = root
         end
     end

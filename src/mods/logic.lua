@@ -5,6 +5,7 @@ function internal.RegisterHooks()
 
     import("mods/logic/utilities.lua")
     import("mods/logic/runtime_state.lua")
+    import("mods/logic/acquisition.lua")
     import("mods/logic/npc_logic.lua")
     import("mods/logic/loot_logic.lua")
 end

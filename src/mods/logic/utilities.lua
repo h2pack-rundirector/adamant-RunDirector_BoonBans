@@ -54,6 +54,12 @@ function internal.GetRunState()
             ImproveFirstNBoonRarity = internal.store.read("ImproveFirstNBoonRarity") or 0,
         }
     end
+    if not CurrentRun.RunDirector_BoonBans_State.BoonPickCounts then
+        CurrentRun.RunDirector_BoonBans_State.BoonPickCounts = {}
+    end
+    if CurrentRun.RunDirector_BoonBans_State.ImproveFirstNBoonRarity == nil then
+        CurrentRun.RunDirector_BoonBans_State.ImproveFirstNBoonRarity = internal.store.read("ImproveFirstNBoonRarity") or 0
+    end
     return CurrentRun.RunDirector_BoonBans_State
 end
 

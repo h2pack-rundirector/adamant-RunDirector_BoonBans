@@ -206,31 +206,30 @@ end)
 
 lib.hooks.Wrap(internal, "AddTraitToHero", function(base, args)
     local result = base(args)
-    local traitData = args.TraitData
+    local traitData = args and args.TraitData or result
     local state = GetRunState()
 
-    if IsBoonBansActive() and traitData then
-        internal.GetOrRecalcBoonCounts()
-        local godKey = internal.ActiveGodKey
-        Log("[Micro] AddTraitToHero: Found godKey %s from (trait: %s)", godKey, traitData.Name)
-        if not godKey then
-            local info = internal.FindTraitInfo(traitData.Name, nil)
-            if info then
-                godKey = internal.GetRootKey(info.god)
-            end
-        end
-        local traitUpgrade = args.SkipSetup or args.SkipActivatedTraitUpdate or args.SkipNewTraitHighlight
+    if IsBoonBansActive() and state and traitData then
+        local traitName = internal.GetAcquiredTraitName(args, traitData, result)
+        local godKey, sourceMode = internal.ResolveAcquiredGodKey(args, traitData, result)
+        local shouldAdvance, advanceMode = internal.ShouldAdvanceBoonTier(args, traitData, result, godKey)
 
-        if godKey and state.BoonPickCounts and not traitUpgrade then
+        Log(
+            "[Micro] AddTraitToHero: trait=%s god=%s source=%s progression=%s",
+            tostring(traitName),
+            tostring(godKey),
+            tostring(sourceMode),
+            tostring(advanceMode)
+        )
+
+        if shouldAdvance then
             state.BoonPickCounts[godKey] = (state.BoonPickCounts[godKey] or 0) + 1
-            Log("[Micro] AddTraitToHero: %s. God: %s. New Count: %d", traitData.Name, tostring(godKey),
+            Log("[Micro] AddTraitToHero: %s. God: %s. New Count: %d", tostring(traitName), tostring(godKey),
                 state.BoonPickCounts[godKey])
         end
         internal.ActiveGodKey = nil
-    end
 
-    if IsBoonBansActive() and traitData then
-        if CurrentRun and state.ImproveFirstNBoonRarity and IsGodTrait(traitData.Name) then
+        if shouldAdvance and CurrentRun and state.ImproveFirstNBoonRarity and IsGodTrait(traitName) then
             state.ImproveFirstNBoonRarity = math.max(0, state.ImproveFirstNBoonRarity - 1)
         end
     end

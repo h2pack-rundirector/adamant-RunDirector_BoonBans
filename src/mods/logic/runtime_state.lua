@@ -94,25 +94,13 @@ end
 
 function internal.GetOrRecalcBoonCounts()
     local state = GetRunState()
-    local pickCounts = state.BoonPickCounts
-    if pickCounts then
-        return pickCounts
+    if not state then
+        return {}
     end
-
-    local counts = {}
-    if CurrentRun and CurrentRun.Hero and CurrentRun.Hero.Traits then
-        for _, trait in pairs(CurrentRun.Hero.Traits) do
-            if trait.Name then
-                local infoList = godInfo.traitLookup[trait.Name]
-                if infoList and infoList[1] then
-                    local rootKey = GetRootKey(infoList[1].god)
-                    counts[rootKey] = (counts[rootKey] or 0) + 1
-                end
-            end
-        end
+    if not state.BoonPickCounts then
+        state.BoonPickCounts = {}
     end
-    state.BoonPickCounts = counts
-    return counts
+    return state.BoonPickCounts
 end
 
 function internal.FindTraitInfo(traitName, filterGodKey, knownTier)

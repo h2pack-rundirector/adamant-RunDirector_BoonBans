@@ -2,11 +2,12 @@ local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
+local MODULE_ID = "BoonBans"
 
 local band, lshift, rshift, bor, bnot = bit32.band, bit32.lshift, bit32.rshift, bit32.bor, bit32.bnot
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(MODULE_ID, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 local function ReadValue(key, session)

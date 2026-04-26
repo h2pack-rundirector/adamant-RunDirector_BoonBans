@@ -26,8 +26,8 @@ local function BuildPackedStorageNode(item)
     }
 end
 
-function internal.BuildDefinitionStorage(config)
-    internal.definition.storage = {
+function internal.BuildStorage(config)
+    local storage = {
         { type = "bool",   alias = "EnablePadding",                   configKey = "EnablePadding" },
         { type = "int",    alias = "Padding_PrioritizeCoreForFirstN", configKey = "Padding_PrioritizeCoreForFirstN", min = 0, max = 15 },
         { type = "bool",   alias = "Padding_AvoidFutureAllowed",      configKey = "Padding_AvoidFutureAllowed" },
@@ -36,10 +36,15 @@ function internal.BuildDefinitionStorage(config)
         { type = "string", alias = "BridalGlowTargetBoon",            configKey = "BridalGlowTargetBoon",            maxLen = 128 },
         { type = "int",    alias = "NpcViewRegion",                   lifetime = "transient",                         default = 4, min = 1, max = 4 },
         { type = "string", alias = "BanFilterText",                   lifetime = "transient",                         default = "", maxLen = 128 },
-        { type = "string", alias = "SelectedRoot_Olympians",          lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_Other Gods",         lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_Hammers",            lifetime = "transient",                         default = "", maxLen = 64 },
-        { type = "string", alias = "SelectedRoot_NPCs",               lifetime = "transient",                         default = "", maxLen = 64 },
+        { type = "string", alias = "ActiveOlympianRoot",              lifetime = "transient",
+            default = "Aphrodite", maxLen = 64 },
+        { type = "string", alias = "ActiveOtherGodRoot",              lifetime = "transient",
+            default = "Hermes", maxLen = 64 },
+        { type = "string", alias = "ActiveHammerRoot",                lifetime = "transient",
+            default = "Staff", maxLen = 64 },
+        { type = "string", alias = "ActiveNpcRoot",                   lifetime = "transient",
+            default = "Arachne", maxLen = 64 },
+        { type = "string", alias = "BridalGlowRoot",                  lifetime = "transient",                         default = "", maxLen = 64 },
     }
 
     local packedKeys = {}
@@ -52,8 +57,10 @@ function internal.BuildDefinitionStorage(config)
         return a.key < b.key
     end)
     for _, item in ipairs(packedKeys) do
-        table.insert(internal.definition.storage, BuildPackedStorageNode(item))
+        table.insert(storage, BuildPackedStorageNode(item))
     end
+
+    return storage
 end
 
 return internal

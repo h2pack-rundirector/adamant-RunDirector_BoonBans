@@ -1,5 +1,6 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
+local ACTIVE_NPC_ROOT_ALIAS = "ActiveNpcRoot"
 
 local NPC_ROOTS = {
     { id = "Arachne", label = "Arachne", group = "Underworld", primaryScopeKey = "Arachne", hasRarity = false },
@@ -20,10 +21,6 @@ for _, root in ipairs(NPC_ROOTS) do
         { key = root.primaryScopeKey, label = "Bans" },
     }
 end
-
-internal.uiLeanState = internal.uiLeanState or {}
-internal.uiLeanState.activeNpcRoot = internal.uiLeanState.activeNpcRoot or "Arachne"
-internal.uiLeanState.activeNpcViewByRoot = internal.uiLeanState.activeNpcViewByRoot or {}
 
 local function IsRootCustomized(root, session)
     local banned = uiData.GetScopeSummary(root.primaryScopeKey, session)
@@ -49,9 +46,10 @@ local function GetNavLabel(root, session)
     return label
 end
 
-local function GetActiveRoot(visibleRoots)
+local function GetActiveRoot(visibleRoots, session)
+    local activeRootId = session.view[ACTIVE_NPC_ROOT_ALIAS]
     for _, root in ipairs(visibleRoots) do
-        if root.id == internal.uiLeanState.activeNpcRoot then
+        if root.id == activeRootId then
             return root
         end
     end
@@ -143,24 +141,25 @@ function internal.DrawNpcsTab(ui, session)
         }
     end
 
-    internal.uiLeanState.activeNpcRoot = lib.nav.verticalTabs(ui, {
+    local activeRootId = lib.nav.verticalTabs(ui, {
         id = "BoonBansNpcsTabs",
         navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
-        activeKey = internal.uiLeanState.activeNpcRoot,
+        activeKey = session.view[ACTIVE_NPC_ROOT_ALIAS],
     })
+    if activeRootId ~= session.view[ACTIVE_NPC_ROOT_ALIAS] then
+        session.write(ACTIVE_NPC_ROOT_ALIAS, activeRootId)
+    end
 
-    local root = GetActiveRoot(visibleRoots)
+    local root = GetActiveRoot(visibleRoots, session)
 
     ui.BeginChild("BoonBansNpcsDetail", 0, 0, false)
     if ui.BeginTabBar("BoonBansNpcsViews##" .. root.id) then
         if ui.BeginTabItem("Bans") then
-            internal.uiLeanState.activeNpcViewByRoot[root.id] = "bans"
             DrawBanPanel(ui, session, root)
             ui.EndTabItem()
         end
         if root.hasRarity and ui.BeginTabItem("Rarity") then
-            internal.uiLeanState.activeNpcViewByRoot[root.id] = "rarity"
             DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end

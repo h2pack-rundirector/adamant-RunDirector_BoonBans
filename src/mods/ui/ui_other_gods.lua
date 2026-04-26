@@ -1,5 +1,6 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
+local ACTIVE_OTHER_GOD_ROOT_ALIAS = "ActiveOtherGodRoot"
 
 local OTHER_GOD_ROOT_SPECS = {
     { id = "Hermes", tiered = true },
@@ -25,10 +26,6 @@ local function BuildOtherGodRoots()
     return roots
 end
 
-internal.uiLeanState = internal.uiLeanState or {}
-internal.uiLeanState.activeOtherGodRoot = internal.uiLeanState.activeOtherGodRoot or "Hermes"
-internal.uiLeanState.activeOtherGodViewByRoot = internal.uiLeanState.activeOtherGodViewByRoot or {}
-
 local function IsRootCustomized(root, session)
     for _, scope in ipairs(root.scopes) do
         local banned = uiData.GetScopeSummary(scope.key, session)
@@ -47,9 +44,10 @@ local function GetNavLabel(root, session)
     return label
 end
 
-local function GetActiveRoot()
+local function GetActiveRoot(session)
+    local activeRootId = session.view[ACTIVE_OTHER_GOD_ROOT_ALIAS]
     for _, root in ipairs(BuildOtherGodRoots()) do
-        if root.id == internal.uiLeanState.activeOtherGodRoot then
+        if root.id == activeRootId then
             return root
         end
     end
@@ -139,31 +137,31 @@ function internal.DrawOtherGodsTab(ui, session)
         }
     end
 
-    internal.uiLeanState.activeOtherGodRoot = lib.nav.verticalTabs(ui, {
+    local activeRootId = lib.nav.verticalTabs(ui, {
         id = "BoonBansOtherGodsTabs",
         navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
-        activeKey = internal.uiLeanState.activeOtherGodRoot,
+        activeKey = session.view[ACTIVE_OTHER_GOD_ROOT_ALIAS],
     })
+    if activeRootId ~= session.view[ACTIVE_OTHER_GOD_ROOT_ALIAS] then
+        session.write(ACTIVE_OTHER_GOD_ROOT_ALIAS, activeRootId)
+    end
 
-    local root = GetActiveRoot()
+    local root = GetActiveRoot(session)
 
     ui.BeginChild("BoonBansOtherGodsDetail", 0, 0, false)
     if ui.BeginTabBar("BoonBansOtherGodsViews##" .. root.id) then
         if #root.scopes > 1 and ui.BeginTabItem("Force") then
-            internal.uiLeanState.activeOtherGodViewByRoot[root.id] = "force"
             DrawForcePanel(ui, session, root)
             ui.EndTabItem()
         end
         for _, scope in ipairs(root.scopes) do
             if ui.BeginTabItem(scope.label) then
-                internal.uiLeanState.activeOtherGodViewByRoot[root.id] = scope.key
                 DrawBanPanel(ui, session, root, scope)
                 ui.EndTabItem()
             end
         end
         if root.hasRarity and ui.BeginTabItem("Rarity") then
-            internal.uiLeanState.activeOtherGodViewByRoot[root.id] = "rarity"
             DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end

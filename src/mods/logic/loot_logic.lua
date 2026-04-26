@@ -3,6 +3,7 @@
 
 local internal = RunDirectorBoonBans_Internal
 local godMeta = internal.godMeta
+local MODULE_ID = "BoonBans"
 
 internal.godInfo = internal.godInfo or {}
 local godInfo = internal.godInfo
@@ -14,7 +15,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(MODULE_ID, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 local isKeepsakeOffering = false

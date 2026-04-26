@@ -48,9 +48,6 @@ uiData.ROOT_NAV_WIDTH = 220
 uiData.bridalGlowEligibleRoots = nil
 uiData.rarityRowsByRoot = {}
 uiData.bridalGlowBoonsByRoot = {}
-uiData.bridalGlowSelection = {
-    rootKey = nil,
-}
 
 function uiData.GetOrdinal(n)
     local s = tostring(n)

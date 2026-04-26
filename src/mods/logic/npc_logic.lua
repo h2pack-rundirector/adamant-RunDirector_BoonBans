@@ -3,6 +3,7 @@
 
 local internal = RunDirectorBoonBans_Internal
 local godInfo = internal.godInfo
+local MODULE_ID = "BoonBans"
 
 local band = bit32.band
 local t_insert = table.insert
@@ -16,7 +17,7 @@ local function IsBoonBansActive()
 end
 
 local function Log(fmt, ...)
-    lib.logging.logIf(internal.definition.id, internal.store.read("DebugMode") == true, fmt, ...)
+    lib.logging.logIf(MODULE_ID, internal.store.read("DebugMode") == true, fmt, ...)
 end
 
 lib.hooks.Wrap(internal, "CirceRemoveShrineUpgrades", function(base, args)

@@ -1,5 +1,7 @@
 local internal = RunDirectorBoonBans_Internal
 local uiData = internal.ui
+local ACTIVE_OLYMPIAN_ROOT_ALIAS = "ActiveOlympianRoot"
+local BRIDAL_GLOW_ROOT_ALIAS = "BridalGlowRoot"
 
 local OLYMPIAN_ROOT_KEYS = {
     "Aphrodite",
@@ -22,10 +24,6 @@ local function BuildOlympianRoots()
     end
     return roots
 end
-
-internal.uiLeanState = internal.uiLeanState or {}
-internal.uiLeanState.activeOlympianRoot = internal.uiLeanState.activeOlympianRoot or "Aphrodite"
-internal.uiLeanState.activeOlympianViewByRoot = internal.uiLeanState.activeOlympianViewByRoot or {}
 
 local function IsRootCustomized(root, session)
     for _, scope in ipairs(root.scopes) do
@@ -56,9 +54,10 @@ local function GetNavLabel(root, session)
     return label
 end
 
-local function GetActiveRoot(visibleRoots)
+local function GetActiveRoot(visibleRoots, session)
+    local activeRootId = session.view[ACTIVE_OLYMPIAN_ROOT_ALIAS]
     for _, root in ipairs(visibleRoots) do
-        if root.id == internal.uiLeanState.activeOlympianRoot then
+        if root.id == activeRootId then
             return root
         end
     end
@@ -187,8 +186,8 @@ local function FindBridalGlowRootForTarget(roots, selectedBoonKey)
     return nil
 end
 
-local function EnsureBridalGlowRootSelection(roots, selectedBoonKey)
-    local transientRootKey = uiData.bridalGlowSelection.rootKey
+local function EnsureBridalGlowRootSelection(roots, selectedBoonKey, session)
+    local transientRootKey = session.view[BRIDAL_GLOW_ROOT_ALIAS]
     if transientRootKey then
         for _, root in ipairs(roots) do
             if root.id == transientRootKey then
@@ -199,12 +198,12 @@ local function EnsureBridalGlowRootSelection(roots, selectedBoonKey)
 
     local matchedRoot = FindBridalGlowRootForTarget(roots, selectedBoonKey)
     if matchedRoot then
-        uiData.bridalGlowSelection.rootKey = matchedRoot.id
+        session.write(BRIDAL_GLOW_ROOT_ALIAS, matchedRoot.id)
         return matchedRoot
     end
 
     local fallback = roots[1]
-    uiData.bridalGlowSelection.rootKey = fallback and fallback.id or nil
+    session.write(BRIDAL_GLOW_ROOT_ALIAS, fallback and fallback.id or "")
     return fallback
 end
 
@@ -223,7 +222,7 @@ local function DrawBridalGlowPanel(ui, session)
         return
     end
 
-    local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey)
+    local selectedRoot = EnsureBridalGlowRootSelection(eligibleRoots, selectedBoonKey, session)
     local selectedRootId = selectedRoot and selectedRoot.id or nil
     local eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
 
@@ -234,7 +233,7 @@ local function DrawBridalGlowPanel(ui, session)
     lib.widgets.separator(ui)
     for _, root in ipairs(eligibleRoots) do
         if ui.Selectable(root.label, root.id == selectedRootId) then
-            uiData.bridalGlowSelection.rootKey = root.id
+            session.write(BRIDAL_GLOW_ROOT_ALIAS, root.id)
             selectedRoot = root
             selectedRootId = root.id
             eligibleBoons = GetBridalGlowEligibleBoons(selectedRoot)
@@ -280,14 +279,17 @@ function internal.DrawOlympiansTab(ui, session)
         }
     end
 
-    internal.uiLeanState.activeOlympianRoot = lib.nav.verticalTabs(ui, {
+    local activeRootId = lib.nav.verticalTabs(ui, {
         id = "BoonBansOlympiansTabs",
         navWidth = uiData.ROOT_NAV_WIDTH,
         tabs = tabs,
-        activeKey = internal.uiLeanState.activeOlympianRoot,
+        activeKey = session.view[ACTIVE_OLYMPIAN_ROOT_ALIAS],
     })
+    if activeRootId ~= session.view[ACTIVE_OLYMPIAN_ROOT_ALIAS] then
+        session.write(ACTIVE_OLYMPIAN_ROOT_ALIAS, activeRootId)
+    end
 
-    local root = GetActiveRoot(visibleRoots)
+    local root = GetActiveRoot(visibleRoots, session)
 
     ui.BeginChild("BoonBansOlympiansDetail", 0, 0, false)
     if godPoolFiltering then
@@ -299,24 +301,20 @@ function internal.DrawOlympiansTab(ui, session)
 
     if ui.BeginTabBar("BoonBansOlympiansViews##" .. root.id) then
         if ui.BeginTabItem("Force") then
-            internal.uiLeanState.activeOlympianViewByRoot[root.id] = "force"
             DrawForcePanel(ui, session, root)
             ui.EndTabItem()
         end
         for _, scope in ipairs(root.scopes) do
             if ui.BeginTabItem(scope.label) then
-                internal.uiLeanState.activeOlympianViewByRoot[root.id] = scope.key
                 DrawBanPanel(ui, session, scope)
                 ui.EndTabItem()
             end
         end
         if ui.BeginTabItem("Rarity") then
-            internal.uiLeanState.activeOlympianViewByRoot[root.id] = "rarity"
             DrawRarityPanel(ui, session, root)
             ui.EndTabItem()
         end
         if root.hasBridalGlow and ui.BeginTabItem("Bridal Glow Target") then
-            internal.uiLeanState.activeOlympianViewByRoot[root.id] = "bridal_glow"
             DrawBridalGlowPanel(ui, session)
             ui.EndTabItem()
         end
